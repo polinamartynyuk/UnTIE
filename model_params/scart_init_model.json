@@ -1,0 +1,18 @@
+{
+    "model_name": "ScArt Model",
+    "description": "Модель для обработки научных статей на английском языке",
+    "fields": [
+      {
+        "field_id": 1,
+        "field_name": "task",
+        "field_type": "specific_short",
+        "description": "main task being solved in paper",
+        "questions": [
+          "Which task was solved?"
+        ],
+        "keywords": [],
+        "text": "The task that is being solved in the text may include a specific method or model. This is the problem that the authors are trying to solve with their development. The task formulates what exactly the authors are trying to solve.",
+        "required": true
+      }
+    ]
+  }
