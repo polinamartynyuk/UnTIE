@@ -1,0 +1,16 @@
+[
+  {
+    "id": "en-1",
+    "language": "en",
+    "text": "We study semantic segmentation. We propose a residual network for accurate street-scene segmentation.",
+    "question": "Which task was solved?",
+    "reference_answer": "semantic segmentation"
+  },
+  {
+    "id": "ru-1",
+    "language": "ru",
+    "text": "Работа посвящена анализу научных текстов. Предложен метод извлечения задач из аннотаций.",
+    "question": "Какая задача была решена?",
+    "reference_answer": "анализ научных текстов"
+  }
+]

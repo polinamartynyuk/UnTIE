@@ -41,3 +41,26 @@ datasets_results/*.png
 scripts/Test_notebook copy.ipynb
 scripts/01 Test_notebook.ipynb
 datasets_results/
+
+# Canonical generated artifacts
+artifacts/*
+!artifacts/README.md
+
+# New notebook workspace outputs
+experiments/notebooks/*.ipynb
+!experiments/notebooks/04_Analysis_refactored_results.ipynb
+experiments/notebooks/.ipynb_checkpoints/
+
+# Generated analysis artifacts
+experiments/analysis_results/*
+!experiments/analysis_results/README.md
+
+# Dataset-derived run output
+*.generated.csv
+*.generated.json
+
+# Packaging and test caches
+.pytest_cache/
+*.egg-info/
+build/
+dist/
