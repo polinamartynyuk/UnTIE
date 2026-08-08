@@ -22,8 +22,18 @@ def test_parser_exposes_resume_budget_and_strategy_controls() -> None:
     args = module.build_parser().parse_args([])
     assert args.max_keywords == 20
     assert args.evaluation_budget == 250
-    assert args.stability_threshold == 0.7
+    assert args.stability_threshold == 0.4
     assert args.cache_dir.name == "keyword_tuning_cache"
+
+
+def test_parser_exposes_improved_selection_controls() -> None:
+    module = _load_module()
+    args = module.build_parser().parse_args([])
+    assert args.selection_policy == "relaxed"
+    assert args.require_non_empty is True
+    assert args.harm_cap == 0.12
+    assert args.min_activation_rate == 0.20
+    assert args.use_conditional_gain is True
 
 
 def test_parser_accepts_multiple_explicit_strategies() -> None:

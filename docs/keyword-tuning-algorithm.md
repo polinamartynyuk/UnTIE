@@ -266,15 +266,70 @@ Checkpoint каждого запуска сохраняется в:
 
 Checkpoint используется только при совпадении fingerprint.
 
-## 12. Stability selection
+## 12. Stability selection и политики финального отбора
 
 SFFS повторяется `stability_runs` раз на детерминированных 80%-подвыборках dev.
-Слово сохраняется, если частота его выбора не ниже `stability_threshold`.
-Дополнительно рассчитывается устойчивость по сходству выбранных наборов.
+После SFFS применяется политика финального отбора (`--selection-policy`):
+
+| Политика | Поведение |
+|---|---|
+| `strict` | Частота выбора не ниже `stability_threshold`, затем backward pruning |
+| `relaxed` | То же с более низким порогом (по умолчанию 0.4) |
+| `union` | Объединение всех run-selections, затем pruning |
+| `best_run` | Лучший одиночный stability run по dev objective |
+| `frequency_top_k` | Top-k слов по частоте выбора в runs |
+
+**Non-empty rescue guard** (`--require-non-empty`, по умолчанию включён):
+если stability даёт пустой набор, но существует непустой кандидат с
+`mean_gain > 0` и `harm_rate <= harm_cap`, он сохраняется вместо пустого
+словаря.
+
+## 12.1 Prescreening кандидатов
+
+Перед SFFS каждый терм из pool оценивается по одиночке на full dev
+(`--screen-top-k`, по умолчанию 40). Это сокращает перебор generic-слов и
+оставляет бюджет для комбинаций из 2–3 ключевых слов.
+
+## 12.2 Objective, fallback и activation
+
+Штраф `fallback_penalty` применяется только к **вредному fallback** (delta < 0).
+Для непустого subset дополнительно штрафуется **idle fallback** — когда keywords
+не матчат чанки (`inactive_fallback_penalty * fallback_rate`).
+
+Activation-aware objective (balanced defaults):
+
+```text
+gain = mean_gain_active   # средний delta только на docs с fallback=False
+objective = gain
+  + activation_weight * activation_rate
+  + win_rate_weight * win_rate
+  - inactive_fallback_penalty * fallback_rate
+  - harm_penalty * harm_rate
+  - ...
+```
+
+Hard gate: если `activation_rate < min_activation_rate` (default 0.20) для
+непустого subset, objective = −∞. Это не даёт выбирать «редкие безопасные»
+keywords с fallback ~84%.
+
+При `--use-conditional-gain` (default ON) tuning оптимизирует **реальное
+улучшение на active docs**, а не mean_gain, размазанный по tie/fallback.
+
+## 12.3 Candidate pool (только текст документов)
+
+По умолчанию pool строится **только** из attention/QA evidence, собранного из
+текста train-документов. Gold task labels **не** добавляются в pool.
+
+- Фильтрация generic-глаголов (`strive`, `formulate`, `hypotheses`, …)
+- `chunk_support_rate > 0` — терм должен матчить хотя бы один чанк
+- Опциональный relaxed contrast при сборе evidence (`--relaxed-contrast`)
+
+Опционально (не рекомендуется): `--enrich-train-references` добавляет n-grams из
+train gold references. Это подмешивает task labels, а не текстовые сигналы.
 
 После stability selection выполняется backward pruning на полном dev. Лучшая
-стратегия выбирается лексикографически по objective, mean gain, меньшему harm
-rate и имени стратегии.
+стратегия выбирается лексикографически по `mean_gain_active`, `activation_rate`,
+меньшему `harm_rate`, затем `objective` и имени стратегии.
 
 ## 13. Финальная test-оценка и ablation
 
@@ -379,7 +434,22 @@ python -m untie.cli article.txt \
 | `--patience` | 2 | шаги без улучшения |
 | `--beam-width` | 5 | ширина forward beam |
 | `--stability-runs` | 5 | число повторов |
-| `--stability-threshold` | 0.7 | минимальная частота выбора |
+| `--stability-threshold` | 0.4 | минимальная частота выбора |
+| `--selection-policy` | relaxed | политика финального отбора |
+| `--require-non-empty` | true | не возвращать пустой словарь, если есть лучший кандидат |
+| `--harm-cap` | 0.12 | максимальный harm rate для rescue и release gate |
+| `--activation-weight` | 0.15 | бонус за activation rate (1 − fallback) |
+| `--min-activation-rate` | 0.20 | hard gate: минимальная доля active docs |
+| `--inactive-fallback-penalty` | 0.05 | штраф idle fallback при непустом subset |
+| `--use-conditional-gain` | true | mean_gain только на active docs |
+| `--win-rate-weight` | 0.10 | бонус за долю docs с delta > harm_threshold |
+| `--min-enriched-support` | 8 | минимальный document_support для enriched terms |
+| `--max-rescue-keywords` | 5 | максимум терминов в rescue/frequency fallback |
+| `--min-keywords` | 1 | нижняя граница backward pruning (для `full_large` — 4) |
+| `--screen-top-k` | 40 | число кандидатов после prescreening |
+| `--tuning-exact-match` | true | exact-match веса для tuning objective |
+| `--enrich-train-references` | false | добавлять train gold n-grams в pool (не рекомендуется) |
+| `--relaxed-contrast` | true | мягкий contrast при сборе evidence |
 | `--include-bertscore` | false | включить BERTScore в objective |
 
 Для RU по умолчанию используются чанки 128/24, для EN — 384/50.
@@ -403,7 +473,8 @@ python -m untie.cli article.txt \
 ## 18. Демонстрационные ноутбуки
 
 - `experiments/notebooks/06_Keyword_tuning_task_en.ipynb`;
-- `experiments/notebooks/07_Keyword_tuning_task_ru.ipynb`.
+- `experiments/notebooks/07_Keyword_tuning_task_ru.ipynb`;
+- `experiments/notebooks/08_Keyword_tuning_diagnostics_en.ipynb` — пошаговая диагностика pool/prescreen/SFFS/stability по сохранённому trace (без повторного tuning).
 
 Каждый ноутбук имеет режимы `sample` и `full`, показывает progress bars,
 диагностику настройки, сохраняет отдельную tuned-модель и сравнивает baseline

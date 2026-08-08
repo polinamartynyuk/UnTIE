@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from untie.keyword_evidence import (
     CachedChunkAnswer,
     CachedDocumentEvidence,
@@ -14,6 +16,7 @@ from untie.keyword_training import (
     metric_quality,
     save_strategy_summary_csv,
     save_tuning_trace,
+    screen_candidate_terms,
     tune_global_keywords,
 )
 from untie.keyword_tuning import ObjectiveConfig
@@ -109,6 +112,61 @@ def test_metric_quality_normalizes_token_f1_and_optional_bert() -> None:
     ) == 0.75
 
 
+def test_metric_quality_exact_match_preset() -> None:
+    weights = MetricWeights.exact_match()
+    assert weights.bertscore_f1 == 0.0
+    normalized = weights.normalized(include_bertscore=False)
+    assert normalized["char_f1"] == pytest.approx(0.4)
+    assert normalized["token_f1"] == pytest.approx(0.4)
+
+
+def test_screen_reduces_candidate_pool() -> None:
+    from untie.keyword_training import CachedKeywordSubsetEvaluator, _keyword_map
+    from untie.keyword_tuning import KeywordEvidence
+
+    documents = {
+        "dev-1": _document("dev-1", reference="gold dev", with_candidate=True),
+    }
+    pool = (
+        KeywordEvidence(
+            "useful", "", 0.8, 0.5, 2, ("train-1", "train-2"), chunk_support_rate=1.0
+        ),
+        KeywordEvidence(
+            "noise", "", 0.1, 0.0, 2, ("train-1", "train-2"), chunk_support_rate=1.0
+        ),
+    )
+    keywords = _keyword_map(pool)
+    evaluator = CachedKeywordSubsetEvaluator(
+        documents,
+        keywords,
+        FakeMetricCache(),  # type: ignore[arg-type]
+        language="en",
+        strategy=StrategyConfig(),
+    )
+    objective = ObjectiveConfig(
+        fallback_penalty=0,
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+    )
+    screened = screen_candidate_terms(
+        ("useful", "noise"),
+        evaluator,
+        ("dev-1",),
+        objective,
+        top_k=1,
+        harm_cap=0.15,
+    )
+    assert screened == ("useful",)
+
+
+def test_training_config_disables_reference_enrichment_by_default() -> None:
+    assert TrainingConfig(language="en").enrich_train_references is False
+
+
 def test_tuning_selects_train_candidate_and_evaluates_test_only_at_end(tmp_path) -> None:
     documents = [
         _document("train-1", reference="gold train one", with_candidate=True),
@@ -130,6 +188,8 @@ def test_tuning_selects_train_candidate_and_evaluates_test_only_at_end(tmp_path)
             beam_width=2,
             stability_runs=2,
             stability_threshold=0.5,
+            enrich_train_references=False,
+            screen_before_search=False,
             strategies=(StrategyConfig(),),
         ),
         metric_cache=cache,  # type: ignore[arg-type]
@@ -139,6 +199,10 @@ def test_tuning_selects_train_candidate_and_evaluates_test_only_at_end(tmp_path)
             fallback_penalty=0,
             size_penalty=0,
             bootstrap_samples=10,
+            min_activation_rate=0,
+            activation_weight=0,
+            win_rate_weight=0,
+            inactive_fallback_penalty=0,
         ),
         split={
             "train": ("train-1", "train-2"),

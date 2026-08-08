@@ -6,7 +6,7 @@ import json
 import math
 import re
 import csv
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
@@ -23,10 +23,13 @@ from .keyword_tuning import (
     SearchConfig,
     SearchResult,
     aggregate_candidate_pool,
+    build_inverted_index,
     deterministic_document_split,
+    enrich_pool_from_train_references,
+    estimate_term_activation,
     evaluate_objective,
+    finalize_keyword_subset,
     sequential_forward_floating_selection,
-    stability_selection,
 )
 from .model_params import KeywordMetadata
 from .ranking import WeightedKeyword
@@ -81,6 +84,10 @@ class MetricWeights:
     rouge_l_f1: float = 0.25
     bertscore_f1: float = 0.25
 
+    @classmethod
+    def exact_match(cls) -> "MetricWeights":
+        return cls(char_f1=0.4, token_f1=0.4, rouge_l_f1=0.2, bertscore_f1=0.0)
+
     def normalized(self, *, include_bertscore: bool) -> dict[str, float]:
         values = {
             "char_f1": self.char_f1,
@@ -107,11 +114,21 @@ class TrainingConfig:
     patience: int = 2
     beam_width: int = 5
     stability_runs: int = 5
-    stability_threshold: float = 0.7
+    stability_threshold: float = 0.4
     seed: int = 42
     include_bertscore: bool = False
+    tuning_exact_match: bool = True
     critical_quality_threshold: float = 0.65
     guard_fraction: float = 0.1
+    selection_policy: str = "relaxed"
+    require_non_empty: bool = True
+    max_rescue_keywords: int = 5
+    min_keywords: int = 1
+    harm_cap: float = 0.12
+    screen_top_k: int = 40
+    screen_before_search: bool = True
+    enrich_train_references: bool = False
+    min_enriched_support: int = 8
     strategies: tuple[StrategyConfig, ...] = ()
 
     def strategy_grid(self) -> tuple[StrategyConfig, ...]:
@@ -138,6 +155,10 @@ class StrategyOutcome:
     selections: tuple[tuple[str, ...], ...]
     stop_reasons: tuple[str, ...]
     evaluations_used: int
+    activation_rate: float = 0.0
+    mean_gain_active: float = 0.0
+    win_rate: float = 0.0
+    loss_rate: float = 0.0
     traces: tuple[tuple[Any, ...], ...] = ()
 
 
@@ -162,11 +183,19 @@ class TuningOutcome:
     fallback_rate: float
     confidence_lower_bound: float
     stability: float
+    activation_rate: float
+    mean_gain_active: float
+    win_rate: float
+    loss_rate: float
     test_objective: float
     test_mean_gain: float
     test_harm_rate: float
     test_fallback_rate: float
     test_confidence_lower_bound: float
+    test_activation_rate: float
+    test_mean_gain_active: float
+    test_win_rate: float
+    test_loss_rate: float
     seed: int
     train_doc_ids: tuple[str, ...]
     dev_doc_ids: tuple[str, ...]
@@ -174,6 +203,8 @@ class TuningOutcome:
     strategy_outcomes: tuple[StrategyOutcome, ...]
     ablations: tuple[AblationResult, ...]
     fingerprint: str
+    harm_cap: float = 0.12
+    min_activation_rate: float = 0.20
 
     def tuning_metadata(self) -> dict[str, Any]:
         return {
@@ -190,21 +221,31 @@ class TuningOutcome:
             ),
             "strategy": asdict(self.strategy),
             "mean_gain": self.mean_gain,
+            "mean_gain_active": self.mean_gain_active,
             "harm_rate": self.harm_rate,
             "fallback_rate": self.fallback_rate,
+            "activation_rate": self.activation_rate,
+            "win_rate": self.win_rate,
+            "loss_rate": self.loss_rate,
             "confidence_lower_bound": self.confidence_lower_bound,
             "stability": self.stability,
             "test": {
                 "objective": self.test_objective,
                 "mean_gain": self.test_mean_gain,
+                "mean_gain_active": self.test_mean_gain_active,
                 "harm_rate": self.test_harm_rate,
                 "fallback_rate": self.test_fallback_rate,
+                "activation_rate": self.test_activation_rate,
+                "win_rate": self.test_win_rate,
+                "loss_rate": self.test_loss_rate,
                 "confidence_lower_bound": self.test_confidence_lower_bound,
             },
             "release_recommended": (
                 self.test_mean_gain > 0
+                and self.test_activation_rate >= self.min_activation_rate
+                and self.test_win_rate >= self.test_loss_rate
+                and self.test_harm_rate <= self.harm_cap
                 and self.test_confidence_lower_bound >= 0
-                and self.test_harm_rate <= 0.1
             ),
             "fingerprint": self.fingerprint,
             "ablations": [asdict(item) for item in self.ablations],
@@ -217,12 +258,14 @@ def candidate_evidence_from_documents(
     result: list[KeywordEvidence] = []
     for document in documents:
         for candidate in document.candidates:
+            has_chunks = bool(candidate.matched_chunk_indices)
             result.append(
                 KeywordEvidence(
                     term=candidate.word,
                     doc_id=document.doc_id,
                     attention=candidate.attention_weight,
                     score_diff=candidate.score_difference,
+                    chunk_support_rate=1.0 if has_chunks else 0.0,
                 )
             )
     return tuple(result)
@@ -408,27 +451,72 @@ def _prune_stable_subset(
     doc_ids: tuple[str, ...],
     objective_config: ObjectiveConfig,
 ) -> tuple[tuple[str, ...], Any]:
-    current = tuple(sorted(subset))
-    current_eval = evaluate_objective(
-        evaluator(current, doc_ids), current, config=objective_config
+    from .keyword_tuning import prune_keyword_subset
+
+    return prune_keyword_subset(subset, evaluator, doc_ids, objective_config)
+
+
+def screen_candidate_terms(
+    candidate_terms: Sequence[str],
+    evaluator: CachedKeywordSubsetEvaluator,
+    doc_ids: tuple[str, ...],
+    objective_config: ObjectiveConfig,
+    *,
+    top_k: int,
+    harm_cap: float,
+    inverted_index: Mapping[str, Sequence[str]] | None = None,
+) -> tuple[str, ...]:
+    """Keep the most promising single-keyword candidates for SFFS."""
+    if top_k <= 0 or len(candidate_terms) <= top_k:
+        return tuple(candidate_terms)
+    empty_eval = evaluate_objective(
+        evaluator((), doc_ids), (), config=objective_config
     )
-    changed = True
-    while changed and len(current) > 1:
-        changed = False
-        proposals = []
-        for term in current:
-            proposal = tuple(item for item in current if item != term)
-            result = evaluate_objective(
-                evaluator(proposal, doc_ids),
-                proposal,
-                config=objective_config,
+    scored: list[tuple[float, float, float, float, str]] = []
+    for term in candidate_terms:
+        if inverted_index is not None:
+            predicted = estimate_term_activation(term, inverted_index, doc_ids)
+            if predicted < objective_config.min_activation_rate:
+                continue
+        result = evaluate_objective(
+            evaluator((term,), doc_ids), (term,), config=objective_config
+        )
+        if result.harm_rate > harm_cap:
+            continue
+        min_activation = objective_config.min_activation_rate
+        if (
+            result.mean_gain_active <= 0
+            and result.objective <= empty_eval.objective
+            and result.activation_rate < max(0.05, min_activation * 0.5)
+        ):
+            continue
+        scored.append(
+            (
+                result.mean_gain_active,
+                result.activation_rate,
+                result.objective,
+                result.harm_rate,
+                term,
             )
-            proposals.append((result.objective, term, proposal, result))
-        best = max(proposals, key=lambda item: (item[0], item[1]))
-        if best[0] > current_eval.objective:
-            _, _, current, current_eval = best
-            changed = True
-    return current, current_eval
+        )
+    if not scored:
+        for term in candidate_terms:
+            result = evaluate_objective(
+                evaluator((term,), doc_ids), (term,), config=objective_config
+            )
+            scored.append(
+                (
+                    result.mean_gain_active,
+                    result.activation_rate,
+                    result.objective,
+                    result.harm_rate,
+                    term,
+                )
+            )
+    scored.sort(
+        key=lambda item: (-item[0], -item[1], -item[2], item[4])
+    )
+    return tuple(term for _, _, _, _, term in scored[:top_k])
 
 
 def tune_global_keywords(
@@ -455,6 +543,15 @@ def tune_global_keywords(
     if not train_ids or not dev_ids:
         raise ValueError("Keyword tuning requires non-empty train and dev splits")
 
+    tuning_weights = (
+        MetricWeights.exact_match()
+        if config.tuning_exact_match
+        else metric_weights
+    )
+    tuning_include_bertscore = (
+        False if config.tuning_exact_match else config.include_bertscore
+    )
+
     evidence = candidate_evidence_from_documents(
         by_id[doc_id] for doc_id in train_ids
     )
@@ -462,7 +559,16 @@ def tune_global_keywords(
         evidence,
         train_ids,
         min_document_support=config.min_document_support,
-    )[: config.max_candidates]
+    )
+    if config.enrich_train_references:
+        pool = enrich_pool_from_train_references(
+            pool,
+            by_id,
+            train_ids,
+            min_document_support=config.min_enriched_support,
+        )
+    pool = pool[: config.max_candidates]
+    inverted_index = build_inverted_index(pool)
     if not pool:
         raise ValueError("Candidate pool is empty after train-only filtering")
     if progress_callback is not None:
@@ -503,9 +609,30 @@ def tune_global_keywords(
             metric_cache,
             language=config.language,
             strategy=strategy,
-            include_bertscore=config.include_bertscore,
-            metric_weights=metric_weights,
+            include_bertscore=tuning_include_bertscore,
+            metric_weights=tuning_weights,
         )
+        search_terms = candidate_terms
+        if config.screen_before_search:
+            search_terms = screen_candidate_terms(
+                candidate_terms,
+                evaluator,
+                dev_ids,
+                objective_config,
+                top_k=config.screen_top_k,
+                harm_cap=config.harm_cap,
+                inverted_index=inverted_index,
+            )
+            if progress_callback is not None:
+                progress_callback(
+                    "screen_candidates",
+                    len(search_terms),
+                    len(candidate_terms),
+                    {
+                        "strategy": strategy.name,
+                        "screened_count": len(search_terms),
+                    },
+                )
         critical, guards = critical_and_guard_documents(
             by_id,
             evaluator,
@@ -534,7 +661,7 @@ def tune_global_keywords(
                 else None
             )
             result = sequential_forward_floating_selection(
-                candidate_terms,
+                search_terms,
                 panel,
                 evaluator,
                 objective_config=objective_config,
@@ -565,11 +692,19 @@ def tune_global_keywords(
                         "evaluations_used": result.evaluations_used,
                     },
                 )
-        stable, stability = stability_selection(
-            selections, threshold=config.stability_threshold
-        )
-        final_keywords, final_evaluation = _prune_stable_subset(
-            stable, evaluator, dev_ids, objective_config
+        final_keywords, final_evaluation, stability = finalize_keyword_subset(
+            selections,
+            search_results,
+            candidate_terms,
+            evaluator,
+            dev_ids,
+            objective_config,
+            policy=config.selection_policy,
+            stability_threshold=config.stability_threshold,
+            require_non_empty=config.require_non_empty,
+            max_rescue_keywords=config.max_rescue_keywords,
+            min_keywords=config.min_keywords,
+            harm_cap=config.harm_cap,
         )
         outcomes.append(
             StrategyOutcome(
@@ -586,6 +721,10 @@ def tune_global_keywords(
                 evaluations_used=sum(
                     item.evaluations_used for item in search_results
                 ),
+                activation_rate=final_evaluation.activation_rate,
+                mean_gain_active=final_evaluation.mean_gain_active,
+                win_rate=final_evaluation.win_rate,
+                loss_rate=final_evaluation.loss_rate,
                 traces=tuple(item.trace for item in search_results),
             )
         )
@@ -606,9 +745,10 @@ def tune_global_keywords(
     best = max(
         outcomes,
         key=lambda item: (
-            item.objective,
-            item.mean_gain,
+            item.mean_gain_active,
+            item.activation_rate,
             -item.harm_rate,
+            item.objective,
             item.strategy.name,
         ),
     )
@@ -625,22 +765,23 @@ def tune_global_keywords(
         language=config.language,
         strategy=best.strategy,
         include_bertscore=config.include_bertscore,
-        metric_weights=metric_weights,
+        metric_weights=metric_weights if not config.tuning_exact_match else tuning_weights,
     )
+    report_config = replace(objective_config, apply_activation_gate=False)
     full_result = evaluate_objective(
         best_evaluator(best.keywords, dev_ids),
         best.keywords,
-        config=objective_config,
+        config=report_config,
     )
     test_result = evaluate_objective(
         best_evaluator(best.keywords, test_ids),
         best.keywords,
-        config=objective_config,
+        config=report_config,
     )
     baseline_test = evaluate_objective(
         best_evaluator((), test_ids),
         (),
-        config=objective_config,
+        config=report_config,
     )
     frequency_keywords = tuple(
         item.term for item in pool[: max(1, len(best.keywords))]
@@ -648,7 +789,7 @@ def tune_global_keywords(
     frequency_test = evaluate_objective(
         best_evaluator(frequency_keywords, test_ids),
         frequency_keywords,
-        config=objective_config,
+        config=report_config,
     )
     ablations = (
         AblationResult(
@@ -682,7 +823,7 @@ def tune_global_keywords(
         without_result = evaluate_objective(
             best_evaluator(without, dev_ids),
             without,
-            config=objective_config,
+            config=report_config,
         )
         source = best_pool[term]
         weighted = keywords[term]
@@ -722,20 +863,38 @@ def tune_global_keywords(
         fallback_rate=full_result.fallback_rate,
         confidence_lower_bound=full_result.confidence_lower_bound,
         stability=best.stability,
+        activation_rate=full_result.activation_rate,
+        mean_gain_active=full_result.mean_gain_active,
+        win_rate=full_result.win_rate,
+        loss_rate=full_result.loss_rate,
         test_objective=test_result.objective,
         test_mean_gain=test_result.mean_gain,
         test_harm_rate=test_result.harm_rate,
         test_fallback_rate=test_result.fallback_rate,
         test_confidence_lower_bound=test_result.confidence_lower_bound,
+        test_activation_rate=test_result.activation_rate,
+        test_mean_gain_active=test_result.mean_gain_active,
+        test_win_rate=test_result.win_rate,
+        test_loss_rate=test_result.loss_rate,
         seed=config.seed,
         train_doc_ids=train_ids,
         dev_doc_ids=dev_ids,
         test_doc_ids=test_ids,
         strategy_outcomes=tuple(
-            sorted(outcomes, key=lambda item: item.objective, reverse=True)
+            sorted(
+                outcomes,
+                key=lambda item: (
+                    item.mean_gain_active,
+                    item.activation_rate,
+                    item.objective,
+                ),
+                reverse=True,
+            )
         ),
         ablations=ablations,
         fingerprint=fingerprint,
+        harm_cap=config.harm_cap,
+        min_activation_rate=objective_config.min_activation_rate,
     )
     if progress_callback is not None:
         progress_callback(
@@ -762,22 +921,26 @@ def save_tuning_trace(outcome: TuningOutcome, path: str | Path) -> None:
         ],
         "objective": outcome.objective,
         "mean_gain": outcome.mean_gain,
+        "mean_gain_active": outcome.mean_gain_active,
         "harm_rate": outcome.harm_rate,
         "fallback_rate": outcome.fallback_rate,
+        "activation_rate": outcome.activation_rate,
+        "win_rate": outcome.win_rate,
+        "loss_rate": outcome.loss_rate,
         "confidence_lower_bound": outcome.confidence_lower_bound,
         "stability": outcome.stability,
         "test": {
             "objective": outcome.test_objective,
             "mean_gain": outcome.test_mean_gain,
+            "mean_gain_active": outcome.test_mean_gain_active,
             "harm_rate": outcome.test_harm_rate,
             "fallback_rate": outcome.test_fallback_rate,
+            "activation_rate": outcome.test_activation_rate,
+            "win_rate": outcome.test_win_rate,
+            "loss_rate": outcome.test_loss_rate,
             "confidence_lower_bound": outcome.test_confidence_lower_bound,
         },
-        "release_recommended": (
-            outcome.test_mean_gain > 0
-            and outcome.test_confidence_lower_bound >= 0
-            and outcome.test_harm_rate <= 0.1
-        ),
+        "release_recommended": outcome.tuning_metadata()["release_recommended"],
         "split": {
             "train": outcome.train_doc_ids,
             "dev": outcome.dev_doc_ids,
@@ -810,6 +973,10 @@ def save_strategy_summary_csv(
         "strategy",
         "objective",
         "mean_gain",
+        "mean_gain_active",
+        "activation_rate",
+        "win_rate",
+        "loss_rate",
         "harm_rate",
         "fallback_rate",
         "confidence_lower_bound",
@@ -828,6 +995,10 @@ def save_strategy_summary_csv(
                     "strategy": item.strategy.name,
                     "objective": item.objective,
                     "mean_gain": item.mean_gain,
+                    "mean_gain_active": item.mean_gain_active,
+                    "activation_rate": item.activation_rate,
+                    "win_rate": item.win_rate,
+                    "loss_rate": item.loss_rate,
                     "harm_rate": item.harm_rate,
                     "fallback_rate": item.fallback_rate,
                     "confidence_lower_bound": item.confidence_lower_bound,

@@ -454,6 +454,7 @@ def collect_document_evidence(
     min_answer_threshold: float = 0.7,
     keyword_idf_threshold: float = 1.5,
     collect_candidates: bool = True,
+    relaxed_contrast: bool = False,
     fingerprint_payload: dict[str, Any] | None = None,
 ) -> CachedDocumentEvidence:
     """Выполняет дорогой train-only сбор evidence для одного документа."""
@@ -492,6 +493,35 @@ def collect_document_evidence(
             references=clean_references,
             encoder=encoder,
         )
+        if relaxed_contrast and len(contrasted) < 20:
+            seen = {str(item["word"]).casefold() for item in contrasted}
+            for item in merged:
+                word = str(item["word"])
+                if word.casefold() in seen:
+                    continue
+                positive = float(
+                    cosine_similarity(
+                        np.asarray(encoder.encode([word])),
+                        np.asarray(encoder.encode([aspect_reference])),
+                    )[0, 0]
+                )
+                negative = 0.0
+                if clean_references:
+                    negative = float(
+                        cosine_similarity(
+                            np.asarray(encoder.encode([word])),
+                            np.asarray(encoder.encode(list(clean_references))),
+                        ).max()
+                    )
+                score_diff = positive - negative
+                if score_diff >= -0.05:
+                    contrasted.append({**item, "score_diff": score_diff})
+                    seen.add(word.casefold())
+            contrasted = sorted(
+                contrasted,
+                key=lambda item: float(item.get("score_diff", 0.0)),
+                reverse=True,
+            )
 
     chunk_index_by_text: dict[str, list[int]] = {}
     for index, chunk in enumerate(chunks):

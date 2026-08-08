@@ -16,6 +16,7 @@ import re
 import statistics
 import tempfile
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
@@ -28,6 +29,27 @@ _DEFAULT_STOPWORDS = frozenset(
         "was", "were", "with",
     }
 )
+_GENERIC_VERBS = frozenset(
+    {
+        "demonstrate", "formulate", "hypotheses", "hypothesis", "identify",
+        "investigate", "propose", "section", "strive", "study", "analyze",
+        "analyse", "describe", "discuss", "examine", "explore", "present",
+        "show", "use", "using", "used", "based", "approach", "method",
+        "methods", "results", "result", "paper", "work", "task", "tasks",
+    }
+)
+
+SELECTION_POLICIES = frozenset(
+    {"strict", "relaxed", "union", "best_run", "frequency_top_k"}
+)
+
+
+class SelectionPolicy(str, Enum):
+    STRICT = "strict"
+    RELAXED = "relaxed"
+    UNION = "union"
+    BEST_RUN = "best_run"
+    FREQUENCY_TOP_K = "frequency_top_k"
 
 
 @dataclass(frozen=True)
@@ -38,6 +60,8 @@ class KeywordEvidence:
     score_diff: float = 0.0
     document_support: int = 1
     supporting_docs: tuple[str, ...] = ()
+    chunk_support_rate: float = 0.0
+    is_enriched: bool = False
 
 
 @dataclass(frozen=True)
@@ -63,6 +87,12 @@ class ObjectiveConfig:
     bootstrap_samples: int = 500
     bootstrap_seed: int = 0
     confidence_weight: float = 0.0
+    activation_weight: float = 0.15
+    min_activation_rate: float = 0.20
+    use_conditional_gain: bool = True
+    inactive_fallback_penalty: float = 0.05
+    win_rate_weight: float = 0.10
+    apply_activation_gate: bool = True
 
 
 @dataclass(frozen=True)
@@ -77,6 +107,11 @@ class EvaluationResult:
     size_penalty: float
     document_count: int
     deltas: tuple[float, ...] = ()
+    activation_rate: float = 0.0
+    mean_gain_active: float = 0.0
+    win_rate: float = 0.0
+    loss_rate: float = 0.0
+    active_document_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -152,11 +187,15 @@ def aggregate_candidate_pool(
     *,
     min_document_support: int = 2,
     stopwords: Iterable[str] = (),
+    filter_generic: bool = True,
+    require_chunk_support: bool = True,
 ) -> tuple[KeywordEvidence, ...]:
     """Aggregate train-only evidence using medians and document support."""
     train = {str(doc_id) for doc_id in train_doc_ids}
     stops = _DEFAULT_STOPWORDS | {normalize_term(word) for word in stopwords}
-    grouped: dict[str, dict[str, list[float] | set[str]]] = {}
+    if filter_generic:
+        stops = stops | _GENERIC_VERBS
+    grouped: dict[str, dict[str, Any]] = {}
     for item in evidence:
         if item.doc_id not in train:
             continue
@@ -164,24 +203,32 @@ def aggregate_candidate_pool(
         if not term or term in stops or all(part in stops for part in term.split()):
             continue
         bucket = grouped.setdefault(
-            term, {"attention": [], "score_diff": [], "docs": set()}
+            term,
+            {"attention": [], "score_diff": [], "docs": set(), "chunk_docs": set()},
         )
-        bucket["attention"].append(float(item.attention))  # type: ignore[union-attr]
-        bucket["score_diff"].append(float(item.score_diff))  # type: ignore[union-attr]
-        bucket["docs"].add(item.doc_id)  # type: ignore[union-attr]
+        bucket["attention"].append(float(item.attention))
+        bucket["score_diff"].append(float(item.score_diff))
+        bucket["docs"].add(item.doc_id)
+        if item.chunk_support_rate > 0:
+            bucket["chunk_docs"].add(item.doc_id)
     result = []
     for term, bucket in grouped.items():
-        docs = tuple(sorted(bucket["docs"]))  # type: ignore[arg-type]
+        docs = tuple(sorted(bucket["docs"]))
         if len(docs) < min_document_support:
+            continue
+        chunk_rate = len(bucket["chunk_docs"]) / len(docs) if docs else 0.0
+        if require_chunk_support and chunk_rate <= 0:
             continue
         result.append(
             KeywordEvidence(
                 term=term,
                 doc_id="",
-                attention=float(statistics.median(bucket["attention"])),  # type: ignore[arg-type]
-                score_diff=float(statistics.median(bucket["score_diff"])),  # type: ignore[arg-type]
+                attention=float(statistics.median(bucket["attention"])),
+                score_diff=float(statistics.median(bucket["score_diff"])),
                 document_support=len(docs),
                 supporting_docs=docs,
+                chunk_support_rate=float(chunk_rate),
+                is_enriched=False,
             )
         )
     return tuple(
@@ -189,12 +236,101 @@ def aggregate_candidate_pool(
             result,
             key=lambda item: (
                 -item.document_support,
+                -item.chunk_support_rate,
                 -item.score_diff,
                 -item.attention,
                 item.term,
             ),
         )
     )
+
+
+def enrich_pool_from_train_references(
+    pool: Sequence[KeywordEvidence],
+    documents: Mapping[str, Any],
+    train_doc_ids: Iterable[str],
+    *,
+    min_document_support: int = 8,
+    max_terms: int = 30,
+) -> tuple[KeywordEvidence, ...]:
+    """Add leakage-safe unigram/bigram terms mined from train gold references.
+
+    Opt-in only (`--enrich-train-references`). Default tuning uses candidates
+    extracted from document text via attention/QA, not gold task labels.
+    """
+    train = {str(doc_id) for doc_id in train_doc_ids}
+    existing = {item.term for item in pool}
+    counts: dict[str, set[str]] = {}
+    for doc_id in train:
+        document = documents.get(doc_id)
+        if document is None:
+            continue
+        references = getattr(document, "references", ())
+        for reference in references:
+            tokens = [
+                normalize_term(part)
+                for part in _TERM_RE.sub(" ", str(reference).casefold()).split()
+                if normalize_term(part)
+                and normalize_term(part) not in _DEFAULT_STOPWORDS
+                and normalize_term(part) not in _GENERIC_VERBS
+            ]
+            for token in tokens:
+                counts.setdefault(token, set()).add(doc_id)
+            for left, right in zip(tokens, tokens[1:]):
+                bigram = normalize_term(f"{left} {right}")
+                if bigram:
+                    counts.setdefault(bigram, set()).add(doc_id)
+    additions = []
+    for term, docs in sorted(
+        counts.items(),
+        key=lambda item: (-len(item[1]), item[0]),
+    ):
+        if term in existing or len(docs) < min_document_support:
+            continue
+        additions.append(
+            KeywordEvidence(
+                term=term,
+                doc_id="",
+                attention=0.0,
+                score_diff=0.0,
+                document_support=len(docs),
+                supporting_docs=tuple(sorted(docs)),
+                chunk_support_rate=0.0,
+                is_enriched=True,
+            )
+        )
+        if len(additions) >= max_terms:
+            break
+    if not additions:
+        return tuple(pool)
+    merged = {item.term: item for item in pool}
+    for item in additions:
+        merged[item.term] = item
+    return tuple(
+        sorted(
+            merged.values(),
+            key=lambda item: (
+                -item.document_support,
+                -item.chunk_support_rate,
+                -item.score_diff,
+                -item.attention,
+                item.term,
+            ),
+        )
+    )
+
+
+def estimate_term_activation(
+    term: str,
+    inverted_index: Mapping[str, Sequence[str]],
+    doc_ids: Iterable[str],
+) -> float:
+    """Estimate activation rate from train/supporting docs present in dev."""
+    docs = {str(doc_id) for doc_id in doc_ids}
+    if not docs:
+        return 0.0
+    supporting = {str(doc_id) for doc_id in inverted_index.get(normalize_term(term), ())}
+    return len(supporting & docs) / len(docs)
 
 
 build_candidate_pool = aggregate_candidate_pool
@@ -332,16 +468,33 @@ def evaluate_objective(
     )
     items.sort(key=lambda item: item.doc_id)
     deltas: list[float] = []
+    active_deltas: list[float] = []
     for item in items:
         if baseline is None:
             base = item.baseline_quality
         else:
             raw_base = baseline.get(item.doc_id, item.baseline_quality)
             base = raw_base.quality if isinstance(raw_base, DocumentEvaluation) else float(raw_base)
-        deltas.append(float(item.quality - base))
+        delta = float(item.quality - base)
+        deltas.append(delta)
+        if not item.fallback:
+            active_deltas.append(delta)
     mean_gain = float(statistics.mean(deltas)) if deltas else 0.0
+    mean_gain_active = (
+        float(statistics.mean(active_deltas)) if active_deltas else 0.0
+    )
     downside = float(statistics.mean(max(0.0, -delta) for delta in deltas)) if deltas else 0.0
     harm_rate = (
+        sum(delta < -config.harm_threshold for delta in deltas) / len(deltas)
+        if deltas
+        else 0.0
+    )
+    win_rate = (
+        sum(delta > config.harm_threshold for delta in deltas) / len(deltas)
+        if deltas
+        else 0.0
+    )
+    loss_rate = (
         sum(delta < -config.harm_threshold for delta in deltas) / len(deltas)
         if deltas
         else 0.0
@@ -349,22 +502,48 @@ def evaluate_objective(
     fallback_rate = (
         sum(bool(item.fallback) for item in items) / len(items) if items else 0.0
     )
+    activation_rate = 1.0 - fallback_rate
+    active_document_count = len(active_deltas)
     keywords = tuple(sorted({normalize_term(term) for term in subset if normalize_term(term)}))
+    harmful_fallback_rate = 0.0
+    if keywords and items:
+        harmful = 0
+        for item, delta in zip(items, deltas):
+            if item.fallback and delta < 0:
+                harmful += 1
+        harmful_fallback_rate = harmful / len(items)
     size_cost = config.size_penalty * len(keywords)
+    bootstrap_values = active_deltas if config.use_conditional_gain and active_deltas else deltas
     lower = _bootstrap_lower_bound(
-        deltas,
+        bootstrap_values,
         config.bootstrap_samples,
         config.confidence_level,
         config.bootstrap_seed,
     )
+    gain = (
+        mean_gain_active
+        if config.use_conditional_gain and active_document_count > 0
+        else mean_gain
+    )
     objective = (
-        mean_gain
+        gain
+        + config.activation_weight * activation_rate
+        + config.win_rate_weight * win_rate
         + config.confidence_weight * lower
         - config.downside_penalty * downside
         - config.harm_penalty * harm_rate
-        - config.fallback_penalty * fallback_rate
+        - config.fallback_penalty * harmful_fallback_rate
         - size_cost
     )
+    if keywords and config.inactive_fallback_penalty > 0:
+        objective -= config.inactive_fallback_penalty * fallback_rate
+    if (
+        config.apply_activation_gate
+        and keywords
+        and config.min_activation_rate > 0
+        and activation_rate < config.min_activation_rate
+    ):
+        objective = float("-inf")
     return EvaluationResult(
         subset=keywords,
         objective=float(objective),
@@ -376,6 +555,11 @@ def evaluate_objective(
         size_penalty=float(size_cost),
         document_count=len(items),
         deltas=tuple(deltas),
+        activation_rate=float(activation_rate),
+        mean_gain_active=mean_gain_active,
+        win_rate=float(win_rate),
+        loss_rate=float(loss_rate),
+        active_document_count=active_document_count,
     )
 
 
@@ -444,6 +628,11 @@ def _result_from_json(data: Mapping[str, Any]) -> EvaluationResult:
         size_penalty=float(data["size_penalty"]),
         document_count=int(data["document_count"]),
         deltas=tuple(float(value) for value in data.get("deltas", ())),
+        activation_rate=float(data.get("activation_rate", 0.0)),
+        mean_gain_active=float(data.get("mean_gain_active", 0.0)),
+        win_rate=float(data.get("win_rate", 0.0)),
+        loss_rate=float(data.get("loss_rate", 0.0)),
+        active_document_count=int(data.get("active_document_count", 0)),
     )
 
 
@@ -767,3 +956,295 @@ def stability_selection(
 
 
 select_stable_keywords = stability_selection
+
+
+def frequency_top_k_selection(
+    selections: Iterable[Iterable[str]],
+    *,
+    top_k: int = 5,
+) -> tuple[tuple[str, ...], float]:
+    """Return the most frequently selected terms across stability runs."""
+    runs = [
+        {normalize_term(term) for term in selection if normalize_term(term)}
+        for selection in selections
+    ]
+    if not runs:
+        return (), 1.0
+    counts: dict[str, int] = {}
+    for run in runs:
+        for term in run:
+            counts[term] = counts.get(term, 0) + 1
+    selected = tuple(
+        term
+        for term, _ in sorted(
+            counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        )[: max(1, top_k)]
+    )
+    _, stability = stability_selection(selections, threshold=0.0)
+    return selected, stability
+
+
+def _pad_subset_to_min_keywords(
+    subset: tuple[str, ...],
+    candidate_terms: Sequence[str],
+    evaluator: Callable[
+        [tuple[str, ...], tuple[str, ...]],
+        Mapping[str, DocumentEvaluation | float],
+    ],
+    doc_ids: tuple[str, ...],
+    objective_config: ObjectiveConfig,
+    *,
+    min_keywords: int,
+    harm_cap: float,
+) -> tuple[tuple[str, ...], EvaluationResult]:
+    """Greedily grow a subset until it reaches min_keywords."""
+    if min_keywords <= len(subset):
+        evaluation = evaluate_objective(
+            _coerce_evaluations(evaluator(subset, doc_ids)),
+            subset,
+            config=objective_config,
+        )
+        return subset, evaluation
+
+    def rank_key(evaluation: EvaluationResult) -> tuple[float, ...]:
+        return (
+            evaluation.mean_gain_active,
+            evaluation.activation_rate,
+            -evaluation.harm_rate,
+            evaluation.objective,
+        )
+
+    current = tuple(sorted({normalize_term(term) for term in subset if normalize_term(term)}))
+    current_eval = evaluate_objective(
+        _coerce_evaluations(evaluator(current, doc_ids)),
+        current,
+        config=objective_config,
+    )
+    seen: set[str] = set()
+    ordered_remaining: list[str] = []
+    for term in candidate_terms:
+        canonical = normalize_term(term)
+        if not canonical or canonical in seen or canonical in set(current):
+            continue
+        seen.add(canonical)
+        ordered_remaining.append(canonical)
+
+    while len(current) < min_keywords and ordered_remaining:
+        best_term: str | None = None
+        best_eval: EvaluationResult | None = None
+        for term in ordered_remaining:
+            proposal = tuple(sorted((*current, term)))
+            evaluation = evaluate_objective(
+                _coerce_evaluations(evaluator(proposal, doc_ids)),
+                proposal,
+                config=objective_config,
+            )
+            if evaluation.harm_rate > harm_cap:
+                continue
+            if best_eval is None or rank_key(evaluation) > rank_key(best_eval):
+                best_term, best_eval = term, evaluation
+        if best_term is None or best_eval is None:
+            break
+        current = best_eval.subset
+        current_eval = best_eval
+        ordered_remaining = [term for term in ordered_remaining if term != best_term]
+    return current, current_eval
+
+
+def prune_keyword_subset(
+    subset: tuple[str, ...],
+    evaluator: Callable[
+        [tuple[str, ...], tuple[str, ...]],
+        Mapping[str, DocumentEvaluation | float],
+    ],
+    doc_ids: tuple[str, ...],
+    objective_config: ObjectiveConfig,
+    *,
+    min_keywords: int = 1,
+) -> tuple[tuple[str, ...], EvaluationResult]:
+    """Backward-remove terms that no longer improve the full-panel objective."""
+    floor = max(1, min_keywords)
+    current = tuple(sorted(subset))
+    current_eval = evaluate_objective(
+        _coerce_evaluations(evaluator(current, doc_ids)),
+        current,
+        config=objective_config,
+    )
+    changed = True
+    while changed and len(current) > floor:
+        changed = False
+        proposals = []
+        for term in current:
+            proposal = tuple(item for item in current if item != term)
+            result = evaluate_objective(
+                _coerce_evaluations(evaluator(proposal, doc_ids)),
+                proposal,
+                config=objective_config,
+            )
+            proposals.append((result.objective, term, proposal, result))
+        best = max(proposals, key=lambda item: (item[0], item[1]))
+        if best[0] > current_eval.objective:
+            _, _, current, current_eval = best
+            changed = True
+    return current, current_eval
+
+
+def finalize_keyword_subset(
+    selections: Sequence[Sequence[str]],
+    search_results: Sequence[SearchResult],
+    candidate_terms: Sequence[str],
+    evaluator: Callable[
+        [tuple[str, ...], tuple[str, ...]],
+        Mapping[str, DocumentEvaluation | float],
+    ],
+    doc_ids: tuple[str, ...],
+    objective_config: ObjectiveConfig,
+    *,
+    policy: str | SelectionPolicy = SelectionPolicy.RELAXED,
+    stability_threshold: float = 0.4,
+    require_non_empty: bool = True,
+    max_rescue_keywords: int = 5,
+    min_keywords: int = 1,
+    harm_cap: float = 0.12,
+) -> tuple[tuple[str, ...], EvaluationResult, float]:
+    """Pick a final keyword subset using a configurable selection policy."""
+
+    def rank_key(evaluation: EvaluationResult) -> tuple[float, ...]:
+        return (
+            evaluation.mean_gain_active,
+            evaluation.activation_rate,
+            -evaluation.harm_rate,
+            evaluation.objective,
+        )
+
+    def activation_acceptable(evaluation: EvaluationResult) -> bool:
+        if not evaluation.subset:
+            return True
+        return (
+            evaluation.activation_rate >= objective_config.min_activation_rate
+            and evaluation.mean_gain_active >= -0.01
+            and evaluation.harm_rate <= harm_cap
+        )
+
+    policy_name = (
+        policy.value if isinstance(policy, SelectionPolicy) else str(policy)
+    )
+    if policy_name not in SELECTION_POLICIES:
+        raise ValueError(f"Unknown selection policy: {policy_name}")
+
+    runs = [tuple(selection) for selection in selections]
+    if policy_name == "strict":
+        stable, stability = stability_selection(
+            runs, threshold=stability_threshold
+        )
+    elif policy_name == "relaxed":
+        stable, stability = stability_selection(
+            runs, threshold=stability_threshold
+        )
+    elif policy_name == "union":
+        stable = tuple(
+            sorted(
+                {
+                    normalize_term(term)
+                    for selection in runs
+                    for term in selection
+                    if normalize_term(term)
+                }
+            )
+        )
+        _, stability = stability_selection(runs, threshold=0.0)
+    elif policy_name == "best_run":
+        if not search_results:
+            stable, stability = (), 1.0
+        else:
+            best_result = max(
+                search_results,
+                key=lambda item: (
+                    item.evaluation.mean_gain_active,
+                    item.evaluation.activation_rate,
+                    -item.evaluation.harm_rate,
+                    item.evaluation.objective,
+                ),
+            )
+            stable = best_result.keywords
+            _, stability = stability_selection(runs, threshold=0.0)
+    else:
+        stable, stability = frequency_top_k_selection(
+            runs, top_k=max_rescue_keywords
+        )
+
+    empty_eval = evaluate_objective(
+        _coerce_evaluations(evaluator((), doc_ids)),
+        (),
+        config=objective_config,
+    )
+    candidates: list[tuple[str, ...]] = []
+    seen: set[tuple[str, ...]] = set()
+
+    def add_candidate(subset: Sequence[str]) -> None:
+        canonical = tuple(sorted({normalize_term(term) for term in subset if normalize_term(term)}))
+        if canonical not in seen:
+            seen.add(canonical)
+            candidates.append(canonical)
+
+    add_candidate(stable)
+    add_candidate(
+        {
+            normalize_term(term)
+            for selection in runs
+            for term in selection
+            if normalize_term(term)
+        }
+    )
+    for selection in runs:
+        add_candidate(selection)
+    for result in search_results:
+        add_candidate(result.keywords)
+    for term in candidate_terms[: max(1, max_rescue_keywords)]:
+        add_candidate((term,))
+
+    evaluated: list[tuple[tuple[str, ...], EvaluationResult]] = []
+    for subset in candidates:
+        keywords, evaluation = prune_keyword_subset(
+            subset, evaluator, doc_ids, objective_config, min_keywords=min_keywords
+        )
+        evaluated.append((keywords, evaluation))
+
+    stable_keywords, stable_eval = prune_keyword_subset(
+        stable, evaluator, doc_ids, objective_config, min_keywords=min_keywords
+    )
+    best_any = max(
+        evaluated,
+        key=lambda item: rank_key(item[1]),
+    )
+    qualified = [
+        (keywords, evaluation)
+        for keywords, evaluation in evaluated
+        if keywords and activation_acceptable(evaluation)
+    ]
+    best_qualified = max(qualified, key=lambda item: rank_key(item[1]), default=None)
+
+    if stable_keywords and activation_acceptable(stable_eval):
+        final_keywords, final_eval = stable_keywords, stable_eval
+    elif best_qualified is not None:
+        final_keywords, final_eval = best_qualified
+    elif require_non_empty and best_any[0]:
+        final_keywords, final_eval = best_any
+    elif require_non_empty:
+        final_keywords, final_eval = (), empty_eval
+    else:
+        final_keywords, final_eval = best_any
+
+    if min_keywords > len(final_keywords):
+        final_keywords, final_eval = _pad_subset_to_min_keywords(
+            final_keywords,
+            candidate_terms,
+            evaluator,
+            doc_ids,
+            objective_config,
+            min_keywords=min_keywords,
+            harm_cap=harm_cap,
+        )
+
+    return final_keywords, final_eval, stability

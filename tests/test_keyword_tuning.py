@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+import math
+from dataclasses import FrozenInstanceError, replace
 
 import pytest
 
@@ -10,8 +11,14 @@ from untie.keyword_tuning import (
     KeywordEvidence,
     ObjectiveConfig,
     SearchConfig,
+    SearchResult,
+    _pad_subset_to_min_keywords,
     aggregate_candidate_pool,
     deterministic_document_split,
+    enrich_pool_from_train_references,
+    evaluate_objective,
+    finalize_keyword_subset,
+    prune_keyword_subset,
     sequential_forward_floating_selection,
     stability_selection,
     stable_subset_hash,
@@ -31,11 +38,11 @@ def test_split_has_no_leakage_and_is_order_independent() -> None:
 
 def test_candidate_pool_is_train_only_normalized_and_robust() -> None:
     evidence = [
-        KeywordEvidence("  Useful-Term ", "train-1", 0.2, 0.3),
-        KeywordEvidence("useful term", "train-2", 0.4, 0.5),
-        KeywordEvidence("USEFUL term", "train-3", 100.0, 100.0),
-        KeywordEvidence("leaked", "test-1", 99.0, 99.0),
-        KeywordEvidence("the", "train-1", 1.0, 1.0),
+        KeywordEvidence("  Useful-Term ", "train-1", 0.2, 0.3, chunk_support_rate=1.0),
+        KeywordEvidence("useful term", "train-2", 0.4, 0.5, chunk_support_rate=1.0),
+        KeywordEvidence("USEFUL term", "train-3", 100.0, 100.0, chunk_support_rate=1.0),
+        KeywordEvidence("leaked", "test-1", 99.0, 99.0, chunk_support_rate=1.0),
+        KeywordEvidence("the", "train-1", 1.0, 1.0, chunk_support_rate=1.0),
     ]
     pool = aggregate_candidate_pool(
         evidence,
@@ -215,3 +222,369 @@ def test_stability_selection_returns_frequency_set_and_jaccard() -> None:
     )
     assert selected == ("a", "b", "c")
     assert score == pytest.approx((2 / 3 + 1 / 3 + 2 / 3) / 3)
+
+
+def test_fallback_penalty_skips_harmless_fallback() -> None:
+    config = ObjectiveConfig(
+        fallback_penalty=0.5,
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+    )
+    harmless = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.5, baseline_quality=0.5, fallback=True),
+            DocumentEvaluation("d2", 0.4, baseline_quality=0.4, fallback=True),
+        ],
+        ("term",),
+        config=config,
+    )
+    empty = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.5, baseline_quality=0.5, fallback=True),
+            DocumentEvaluation("d2", 0.4, baseline_quality=0.4, fallback=True),
+        ],
+        (),
+        config=config,
+    )
+    assert harmless.objective == pytest.approx(0.0)
+    assert empty.objective == pytest.approx(0.0)
+
+    harmful = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.3, baseline_quality=0.5, fallback=True),
+        ],
+        ("term",),
+        config=config,
+    )
+    assert harmful.objective == pytest.approx(-0.7)
+
+
+def test_enrich_pool_from_train_references_adds_task_terms() -> None:
+    class Doc:
+        def __init__(self, references: tuple[str, ...]) -> None:
+            self.references = references
+
+    documents = {
+        "train-1": Doc(("Semantic Segmentation",)),
+        "train-2": Doc(("Semantic Segmentation",)),
+    }
+    pool = enrich_pool_from_train_references(
+        (),
+        documents,
+        ("train-1", "train-2"),
+        min_document_support=2,
+    )
+    terms = {item.term for item in pool}
+    assert "semantic" in terms
+    assert "segmentation" in terms
+    assert "semantic segmentation" in terms
+
+
+def test_finalize_prefers_best_run_over_empty_stable() -> None:
+    def evaluator(subset: tuple[str, ...], doc_ids: tuple[str, ...]):
+        if subset == ("good",):
+            quality = 1.0
+        elif subset == ("bad",):
+            quality = -1.0
+        else:
+            quality = 0.0
+        return {
+            doc_id: DocumentEvaluation(doc_id, quality, baseline_quality=0.0, fallback=False)
+            for doc_id in doc_ids
+        }
+
+    objective = ObjectiveConfig(
+        fallback_penalty=0,
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+    )
+    selections = [("good",), ("bad",), ("other",)]
+    search_results = [
+        SearchResult(
+            ("good",),
+            evaluate_objective(
+                evaluator(("good",), ("d1",)), ("good",), config=objective
+            ),
+            (),
+            "converged",
+            1,
+        ),
+        SearchResult(
+            ("bad",),
+            evaluate_objective(
+                evaluator(("bad",), ("d1",)), ("bad",), config=objective
+            ),
+            (),
+            "converged",
+            1,
+        ),
+        SearchResult(
+            ("other",),
+            evaluate_objective(
+                evaluator(("other",), ("d1",)), ("other",), config=objective
+            ),
+            (),
+            "converged",
+            1,
+        ),
+    ]
+    keywords, evaluation, _ = finalize_keyword_subset(
+        selections,
+        search_results,
+        ("good", "bad", "other"),
+        evaluator,
+        ("d1",),
+        objective,
+        policy="relaxed",
+        stability_threshold=0.7,
+        require_non_empty=True,
+    )
+    assert keywords == ("good",)
+    assert evaluation.mean_gain == pytest.approx(1.0)
+
+
+def test_idle_fallback_penalized_for_nonempty_subset() -> None:
+    config = ObjectiveConfig(
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0.1,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+    idle = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.5, baseline_quality=0.5, fallback=True),
+            DocumentEvaluation("d2", 0.4, baseline_quality=0.4, fallback=True),
+        ],
+        ("term",),
+        config=config,
+    )
+    empty = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.5, baseline_quality=0.5, fallback=True),
+            DocumentEvaluation("d2", 0.4, baseline_quality=0.4, fallback=True),
+        ],
+        (),
+        config=config,
+    )
+    assert idle.objective < empty.objective
+
+
+def test_conditional_gain_prefers_active_subset() -> None:
+    config = ObjectiveConfig(
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0.15,
+        win_rate_weight=0,
+        confidence_weight=0,
+        use_conditional_gain=True,
+    )
+    rare = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 0.3, baseline_quality=0.0, fallback=False),
+            *[
+                DocumentEvaluation(f"d{index}", 0.0, baseline_quality=0.0, fallback=True)
+                for index in range(2, 11)
+            ],
+        ],
+        ("rare",),
+        config=config,
+    )
+    common = evaluate_objective(
+        [
+            *[
+                DocumentEvaluation(
+                    f"d{index}",
+                    0.25,
+                    baseline_quality=0.0,
+                    fallback=False,
+                )
+                for index in range(1, 6)
+            ],
+            *[
+                DocumentEvaluation(f"d{index}", 0.0, baseline_quality=0.0, fallback=True)
+                for index in range(6, 11)
+            ],
+        ],
+        ("common",),
+        config=config,
+    )
+    assert common.activation_rate > rare.activation_rate
+    assert common.objective > rare.objective
+
+
+def test_min_activation_gate_rejects_idle_subset() -> None:
+    config = ObjectiveConfig(
+        min_activation_rate=0.5,
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+    result = evaluate_objective(
+        [
+            DocumentEvaluation("d1", 1.0, baseline_quality=0.0, fallback=False),
+            DocumentEvaluation("d2", 0.0, baseline_quality=0.0, fallback=True),
+            DocumentEvaluation("d3", 0.0, baseline_quality=0.0, fallback=True),
+        ],
+        ("term",),
+        config=config,
+    )
+    assert result.objective == float("-inf")
+
+
+def test_prune_respects_min_keywords() -> None:
+    config = ObjectiveConfig(
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+
+    def evaluator(subset: tuple[str, ...], doc_ids: tuple[str, ...]) -> dict[str, DocumentEvaluation]:
+        per_doc = 0.5 - 0.05 * len(subset)
+        return {
+            doc_id: DocumentEvaluation(doc_id, per_doc, baseline_quality=0.0, fallback=False)
+            for doc_id in doc_ids
+        }
+
+    pruned, _ = prune_keyword_subset(
+        ("a", "b", "c", "d"),
+        evaluator,
+        ("d1", "d2"),
+        config,
+        min_keywords=3,
+    )
+    assert len(pruned) == 3
+
+
+def test_report_objective_skips_activation_gate() -> None:
+    config = ObjectiveConfig(
+        min_activation_rate=0.5,
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+    evaluations = [
+        DocumentEvaluation("d1", 1.0, baseline_quality=0.0, fallback=False),
+        DocumentEvaluation("d2", 0.0, baseline_quality=0.0, fallback=True),
+        DocumentEvaluation("d3", 0.0, baseline_quality=0.0, fallback=True),
+    ]
+    gated = evaluate_objective(evaluations, ("term",), config=config)
+    assert gated.objective == float("-inf")
+
+    report_config = replace(config, apply_activation_gate=False)
+    reported = evaluate_objective(evaluations, ("term",), config=report_config)
+    assert math.isfinite(reported.objective)
+
+
+def test_pad_subset_to_min_keywords() -> None:
+    config = ObjectiveConfig(
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        min_activation_rate=0,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+
+    def evaluator(subset: tuple[str, ...], doc_ids: tuple[str, ...]) -> dict[str, DocumentEvaluation]:
+        per_doc = 0.4 + 0.05 * len(subset)
+        return {
+            doc_id: DocumentEvaluation(doc_id, per_doc, baseline_quality=0.0, fallback=False)
+            for doc_id in doc_ids
+        }
+
+    padded, evaluation = _pad_subset_to_min_keywords(
+        ("a",),
+        ("a", "b", "c", "d"),
+        evaluator,
+        ("d1", "d2"),
+        config,
+        min_keywords=3,
+        harm_cap=0.5,
+    )
+    assert len(padded) == 3
+    assert evaluation.subset == padded
+
+
+def test_finalize_falls_back_to_best_any_and_pads() -> None:
+    config = ObjectiveConfig(
+        harm_penalty=0,
+        downside_penalty=0,
+        size_penalty=0,
+        inactive_fallback_penalty=0,
+        min_activation_rate=0.5,
+        activation_weight=0,
+        win_rate_weight=0,
+        confidence_weight=0,
+    )
+
+    def evaluator(subset: tuple[str, ...], doc_ids: tuple[str, ...]) -> dict[str, DocumentEvaluation]:
+        score = 0.2 * len(subset)
+        return {
+            doc_id: DocumentEvaluation(doc_id, score, baseline_quality=0.0, fallback=False)
+            for doc_id in doc_ids
+        }
+
+    selections = [("a",), ("b",)]
+    search_results = [
+        SearchResult(
+            ("a",),
+            evaluate_objective(evaluator(("a",), ("d1",)), ("a",), config=config),
+            (),
+            "converged",
+            1,
+        ),
+        SearchResult(
+            ("b",),
+            evaluate_objective(evaluator(("b",), ("d1",)), ("b",), config=config),
+            (),
+            "converged",
+            1,
+        ),
+    ]
+    keywords, evaluation, _ = finalize_keyword_subset(
+        selections,
+        search_results,
+        ("a", "b", "c", "d"),
+        evaluator,
+        ("d1", "d2", "d3"),
+        config,
+        policy="union",
+        stability_threshold=0.0,
+        require_non_empty=True,
+        min_keywords=3,
+        harm_cap=0.5,
+    )
+    assert len(keywords) >= 2
+    assert keywords
+    assert evaluation.subset == keywords

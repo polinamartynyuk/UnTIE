@@ -30,6 +30,7 @@ from untie.keyword_evidence import (
     collect_document_evidence,
 )
 from untie.keyword_training import (
+    MetricWeights,
     StrategyConfig,
     TrainingConfig,
     save_strategy_summary_csv,
@@ -77,8 +78,53 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--patience", type=int, default=2)
     parser.add_argument("--beam-width", type=int, default=5)
     parser.add_argument("--stability-runs", type=int, default=5)
-    parser.add_argument("--stability-threshold", type=float, default=0.7)
+    parser.add_argument("--stability-threshold", type=float, default=0.4)
     parser.add_argument("--include-bertscore", action="store_true")
+    parser.add_argument(
+        "--selection-policy",
+        choices=("strict", "relaxed", "union", "best_run", "frequency_top_k"),
+        default="relaxed",
+    )
+    parser.add_argument("--require-non-empty", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--max-rescue-keywords", type=int, default=5)
+    parser.add_argument("--min-keywords", type=int, default=1)
+    parser.add_argument("--harm-cap", type=float, default=0.12)
+    parser.add_argument("--screen-top-k", type=int, default=40)
+    parser.add_argument("--activation-weight", type=float, default=0.15)
+    parser.add_argument("--min-activation-rate", type=float, default=0.20)
+    parser.add_argument("--inactive-fallback-penalty", type=float, default=0.05)
+    parser.add_argument(
+        "--use-conditional-gain",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument("--win-rate-weight", type=float, default=0.10)
+    parser.add_argument("--size-penalty", type=float, default=0.002)
+    parser.add_argument("--min-enriched-support", type=int, default=8)
+    parser.add_argument(
+        "--screen-before-search",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument(
+        "--tuning-exact-match",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument(
+        "--enrich-train-references",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Add n-grams mined from train gold references to the candidate pool. "
+            "Disabled by default: keywords must come from document text evidence."
+        ),
+    )
+    parser.add_argument(
+        "--relaxed-contrast",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument(
         "--strategy",
         nargs=3,
@@ -317,6 +363,7 @@ def run(
                 min_answer_threshold=pipeline_config.min_answer_threshold,
                 keyword_idf_threshold=pipeline_config.keyword_idf_threshold,
                 collect_candidates=collect_candidates,
+                relaxed_contrast=args.relaxed_contrast,
                 fingerprint_payload=fingerprint_payload,
             )
             evidence_store.save(cached)
@@ -357,7 +404,22 @@ def run(
         stability_threshold=args.stability_threshold,
         seed=args.seed,
         include_bertscore=args.include_bertscore,
+        tuning_exact_match=args.tuning_exact_match,
+        selection_policy=args.selection_policy,
+        require_non_empty=args.require_non_empty,
+        max_rescue_keywords=args.max_rescue_keywords,
+        min_keywords=args.min_keywords,
+        harm_cap=args.harm_cap,
+        screen_top_k=args.screen_top_k,
+        screen_before_search=args.screen_before_search,
+        enrich_train_references=args.enrich_train_references,
+        min_enriched_support=args.min_enriched_support,
         strategies=strategies,
+    )
+    metric_weights = (
+        MetricWeights.exact_match()
+        if args.tuning_exact_match
+        else MetricWeights()
     )
     metric_cache = ExtractionMetricCache(
         args.cache_dir
@@ -369,14 +431,20 @@ def run(
         evidence,
         config=training_config,
         metric_cache=metric_cache,
+        metric_weights=metric_weights,
         objective_config=ObjectiveConfig(
             downside_penalty=0.75,
             harm_penalty=0.5,
             fallback_penalty=0.1,
-            size_penalty=0.002,
             harm_threshold=0.01,
             confidence_weight=0.25,
             bootstrap_seed=args.seed,
+            activation_weight=args.activation_weight,
+            min_activation_rate=args.min_activation_rate,
+            use_conditional_gain=args.use_conditional_gain,
+            inactive_fallback_penalty=args.inactive_fallback_penalty,
+            win_rate_weight=args.win_rate_weight,
+            size_penalty=args.size_penalty,
         ),
         split=split,
         checkpoint_dir=(
