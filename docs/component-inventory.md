@@ -10,6 +10,11 @@
 - `untie.pipelines` — сценарии baseline и attention.
 - `untie.cli` — поддерживаемая точка входа из командной строки.
 - `untie.results_analysis` — анализ JSON-результатов batch-экспериментов.
+- `untie.extraction_metrics` — метрики качества извлечения (char/token F1, ROUGE-L, BERTScore).
+- `untie.model_params` — типизированный контракт init/tuned JSON и атомарная запись.
+- `untie.keyword_evidence` — train-only evidence и кэши chunks/QA/metrics.
+- `untie.keyword_tuning`, `untie.keyword_training` — objective, SFFS,
+  stability selection и сборка глобального словаря.
 
 ## Слой совместимости
 
@@ -18,6 +23,7 @@
   но больше не являются каноническим API.
 - `scripts/03_Keywords_with_attention_refactored.py` — refactored EN batch через `untie`.
 - `scripts/03_Keywords_with_attention_refactored_ru.py` — refactored RU batch для RusErrC.
+- `scripts/05_Tune_model_keywords.py` — leakage-safe сборка EN/RU tuned-модели.
 
 ## Сохранённые эксперименты
 

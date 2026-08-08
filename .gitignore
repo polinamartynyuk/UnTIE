@@ -49,6 +49,8 @@ artifacts/*
 # New notebook workspace outputs
 experiments/notebooks/*.ipynb
 !experiments/notebooks/04_Analysis_refactored_results.ipynb
+!experiments/notebooks/06_Keyword_tuning_task_en.ipynb
+!experiments/notebooks/07_Keyword_tuning_task_ru.ipynb
 experiments/notebooks/.ipynb_checkpoints/
 
 # Generated analysis artifacts

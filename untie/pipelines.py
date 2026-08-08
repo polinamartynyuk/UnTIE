@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 from .chunking import ChunkBuilder
 from .config import PipelineConfig
@@ -46,6 +46,16 @@ class AnswerPipeline:
         keywords: list[WeightedKeyword] | None = None,
     ) -> PipelineResult:
         chunks = self.processor.process(text)
+        return self._run_chunks(chunks, questions, keywords=keywords)
+
+    def _run_chunks(
+        self,
+        chunks: list[TextChunk],
+        questions: list[str],
+        *,
+        keywords: list[WeightedKeyword] | None = None,
+    ) -> PipelineResult:
+        """Run QA on already processed chunks without changing the public API."""
         used_chunks = filter_chunks(chunks, keywords) if keywords is not None else chunks
         if not used_chunks:
             return PipelineResult(None, tuple(), tuple())
@@ -68,6 +78,102 @@ class AnswerPipeline:
         )
         answers = [answer for question in result.questions for answer in question.answers]
         return validator.validate(answers, reference_answer)
+
+
+@dataclass
+class StaticKeywordRerankingPipeline:
+    """Reference-free reranking with caller-provided, reusable keywords."""
+
+    processor: DocumentProcessor
+    answerer: QuestionAnswerer
+    encoder: SentenceEncoder
+    config: PipelineConfig
+    keywords: list[WeightedKeyword] = field(default_factory=list)
+
+    def run(
+        self,
+        text: str,
+        questions: str | list[str],
+        *,
+        keywords: list[WeightedKeyword] | None = None,
+        weight_ratio: float = 0.5,
+        minimum_matches: int = 1,
+        position_weight: float = 0.3,
+        frequency_weight: float = 0.7,
+        selection_strategy: Literal["consensus", "clustered"] = "clustered",
+        similarity_threshold: float = 0.75,
+        cluster_strategy: Literal[
+            "highest_avg_score", "weighted_score", "highest_cohesion"
+        ] = "weighted_score",
+        answer_strategy: Literal[
+            "highest_chunk_score", "highest_similarity", "combined_score"
+        ] = "highest_chunk_score",
+    ) -> PipelineResult:
+        question_texts = [questions] if isinstance(questions, str) else list(questions)
+        static_keywords = self.keywords if keywords is None else keywords
+        chunks = self.processor.process(text)
+        scored = score_chunks(
+            chunks,
+            static_keywords,
+            weight_ratio=weight_ratio,
+            minimum_matches=minimum_matches,
+            position_weight=position_weight,
+            frequency_weight=frequency_weight,
+        )
+        keyword_names = [keyword.word for keyword in static_keywords]
+
+        if not scored:
+            baseline = AnswerPipeline(
+                self.processor, self.answerer, self.encoder, self.config
+            )._run_chunks(chunks, question_texts)
+            return PipelineResult(
+                baseline.final_answer,
+                baseline.questions,
+                baseline.used_chunks,
+                metadata={
+                    "keywords": keyword_names,
+                    "selection_strategy": "baseline",
+                    "keyword_fallback": True,
+                },
+            )
+
+        finder = ScoredAnswerFinder(self.answerer)
+        question_objects = [
+            finder.find(Question(question), scored) for question in question_texts
+        ]
+        answers = [answer for question in question_objects for answer in question.answers]
+        consensus = AnswerConsensus(self.encoder)
+        if selection_strategy == "consensus":
+            selected = consensus.select(answers)
+            selected_strategy = "consensus"
+        else:
+            selected = consensus.select_clustered(
+                answers,
+                similarity_threshold=similarity_threshold,
+                cluster_strategy=cluster_strategy,
+                answer_strategy=answer_strategy,
+            )
+            selected_strategy = f"{cluster_strategy}+{answer_strategy}"
+
+        if selected is not None:
+            selected.metadata.setdefault("selection_strategy", selected_strategy)
+            final = FinalAnswer(
+                text=selected.text,
+                confidence=selected.confidence,
+                supporting_answers=(selected,),
+            )
+        else:
+            final = None
+        return PipelineResult(
+            final,
+            tuple(question_objects),
+            tuple(item.chunk for item in scored),
+            metadata={
+                "keywords": keyword_names,
+                "selection_strategy": selected_strategy,
+                "keyword_fallback": False,
+            },
+        )
 
 
 @dataclass

@@ -35,6 +35,12 @@ notebooks = [
     "seaborn>=0.13",
     "statsmodels>=0.14",
 ]
+evaluation = [
+    "evaluate>=0.4",
+    "rouge-score>=0.1",
+    "bert-score>=0.3",
+    "tqdm>=4.66",
+]
 test = ["pytest>=8.0"]
 
 [tool.setuptools.packages.find]

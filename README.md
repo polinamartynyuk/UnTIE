@@ -57,6 +57,32 @@ python -m untie.cli article.txt \
 
 Команда выводит один JSON-объект с полями `answer`, `confidence`, `chunks_used` и метаданными пайплайна. Точки совместимости: `scripts/run_baseline.py` и `scripts/run_attention.py`.
 
+## Сборка статической модели ключевых слов
+
+Глобальный словарь для тематического аспекта настраивается на train/dev и один
+раз проверяется на held-out test:
+
+```bash
+python scripts/05_Tune_model_keywords.py \
+  --language en \
+  --include-bertscore
+```
+
+Скрипт пишет `model_params/scart_tuned_model.json`, подробный JSON trace и CSV
+сравнения стратегий. Дорогие QA/attention результаты и checkpoint поиска
+сохраняются в `artifacts/keyword_tuning_cache`; повторный запуск продолжает
+поиск и переиспользует кэш. Исходный `*_init_model.json` не изменяется.
+
+Собранная модель работает без эталонного ответа:
+
+```bash
+python -m untie.cli article.txt \
+  --language en \
+  --mode static-keywords \
+  --model-params model_params/scart_tuned_model.json \
+  --question "Which task was solved?"
+```
+
 ## Python API
 
 Реализации моделей подключаются через протоколы в `untie.protocols`. Это позволяет тестировать пайплайн без Hugging Face, GPU и локальных весов. Для production-загрузки используйте `untie.models.ModelFactory`.

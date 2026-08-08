@@ -54,6 +54,11 @@ def score_chunks(
     pattern = re.compile(
         r"\b(?:{})\b".format("|".join(map(re.escape, sorted(term_to_keyword))))
     )
+    present_keywords = {
+        term_to_keyword[match.group()]
+        for chunk in chunks
+        for match in pattern.finditer(chunk.text.lower())
+    }
 
     scored: list[ScoredChunk] = []
     for chunk in chunks:
@@ -69,7 +74,10 @@ def score_chunks(
         average_position = sum(1 - match.start() / max(1, len(chunk.text)) for match in matches) / len(matches)
         position_bonus = 1 + position_weight * average_position
         frequency_bonus = 1 + frequency_weight * math.log1p(len(matches))
-        uniqueness_bonus = 1 + len(matched) / len(keywords) * 0.5
+        # Only keywords occurring somewhere in the document belong in the
+        # normalization pool. An unrelated, absent keyword must not dilute
+        # otherwise identical chunk scores.
+        uniqueness_bonus = 1 + len(matched) / len(present_keywords) * 0.5
         score = base * position_bonus * frequency_bonus * uniqueness_bonus
         scored.append(
             ScoredChunk(

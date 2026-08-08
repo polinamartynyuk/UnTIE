@@ -11,10 +11,27 @@ from untie.chunking import ChunkBuilder
 from untie.config import ModelProfile, PipelineConfig
 from untie.domain import Answer, Question, Sentence, TextChunk
 from untie.keywords import KeywordExtractor
-from untie.pipelines import AnswerPipeline, AttentionRerankingPipeline, DocumentProcessor
+from untie.pipelines import (
+    AnswerPipeline,
+    AttentionRerankingPipeline,
+    DocumentProcessor,
+    StaticKeywordRerankingPipeline,
+)
 from untie.qa import AnswerConsensus, AnswerFinder
 from untie.ranking import WeightedKeyword, score_chunks
 from untie.text import RussianSentenceSplitter, SentenceSplitter
+
+
+def test_default_local_model_paths_are_absolute_and_cwd_independent() -> None:
+    english = ModelProfile.english()
+    russian = ModelProfile.russian()
+
+    assert Path(english.qa_model).is_absolute()
+    assert Path(english.sentence_model).is_absolute()
+    assert Path(russian.qa_model).is_absolute()
+    assert Path(english.qa_model).name == "bert_eng_qa_baseroberta_model"
+    assert Path(english.sentence_model).name == "eng_sentence_transformer_model"
+    assert Path(russian.qa_model).name == "rubert_ru_qa_model"
 
 
 class FakeTokenizer:
@@ -115,6 +132,18 @@ def test_keyword_filter_and_scoring() -> None:
     assert scored[0].matched_keywords == ("segmentation",)
 
 
+def test_chunk_score_is_invariant_to_absent_keyword() -> None:
+    sentence = Sentence("semantic segmentation", 0, ("semantic", "segmentation"))
+    chunk = TextChunk((sentence,), sentence.text, sentence.token_count)
+    present = WeightedKeyword("semantic", "semantic", "semantic", 0.8, 0.4)
+    absent = WeightedKeyword("astronomy", "astronomy", "astronom", 1.0, 1.0)
+
+    original = score_chunks([chunk], [present])
+    with_absent = score_chunks([chunk], [present, absent])
+
+    assert original[0].score == with_absent[0].score
+
+
 def test_keyword_extractor_returns_ranked_candidates() -> None:
     keywords = KeywordExtractor(FakeEncoder()).extract(
         ["semantic segmentation segmentation network"],
@@ -138,6 +167,81 @@ def test_pipeline_runs_without_model_loading() -> None:
     assert result.final_answer is not None
     assert result.final_answer.text == "semantic segmentation"
     assert len(result.used_chunks) == 1
+
+
+def test_static_keyword_pipeline_falls_back_to_baseline_once() -> None:
+    config = PipelineConfig(
+        profile=ModelProfile.english(),
+        chunk_max_tokens=20,
+        overlap_tokens=2,
+    )
+
+    class CountingProcessor(DocumentProcessor):
+        calls = 0
+
+        def process(self, text: str) -> list[TextChunk]:
+            self.calls += 1
+            return super().process(text)
+
+    processor = CountingProcessor(FakeTokenizer(), config)
+    pipeline = StaticKeywordRerankingPipeline(
+        processor,
+        FakeAnswerer(),
+        FakeEncoder(),
+        config,
+        [WeightedKeyword("missing", "missing", "missing")],
+    )
+    result = pipeline.run(
+        "We study semantic segmentation. We propose a residual model.",
+        "Which task was solved?",
+    )
+
+    assert processor.calls == 1
+    assert result.final_answer is not None
+    assert result.final_answer.text == "semantic segmentation"
+    assert result.metadata == {
+        "keywords": ["missing"],
+        "selection_strategy": "baseline",
+        "keyword_fallback": True,
+    }
+
+
+def test_static_keyword_pipeline_is_deterministic() -> None:
+    config = PipelineConfig(
+        profile=ModelProfile.english(),
+        chunk_max_tokens=20,
+        overlap_tokens=2,
+    )
+    pipeline = StaticKeywordRerankingPipeline(
+        DocumentProcessor(FakeTokenizer(), config),
+        FakeAnswerer(),
+        FakeEncoder(),
+        config,
+        [WeightedKeyword("semantic", "semantic", "semantic", 0.8, 0.4)],
+    )
+
+    first = pipeline.run(
+        "We study semantic segmentation. We propose a residual model.",
+        ["Which task was solved?", "What was studied?"],
+        cluster_strategy="weighted_score",
+        answer_strategy="highest_chunk_score",
+    )
+    second = pipeline.run(
+        "We study semantic segmentation. We propose a residual model.",
+        ["Which task was solved?", "What was studied?"],
+        cluster_strategy="weighted_score",
+        answer_strategy="highest_chunk_score",
+    )
+
+    assert first.final_answer == second.final_answer
+    assert first.metadata == second.metadata == {
+        "keywords": ["semantic"],
+        "selection_strategy": "weighted_score+highest_chunk_score",
+        "keyword_fallback": False,
+    }
+    assert [chunk.text for chunk in first.used_chunks] == [
+        chunk.text for chunk in second.used_chunks
+    ]
 
 
 def test_fixture_contract() -> None:

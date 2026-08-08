@@ -5,6 +5,11 @@ from enum import Enum
 from pathlib import Path
 
 
+DEFAULT_MODEL_ROOT = (
+    Path(__file__).resolve().parents[1] / "scripts" / "models_processing" / "models"
+)
+
+
 class Language(str, Enum):
     EN = "en"
     RU = "ru"
@@ -19,7 +24,7 @@ class ModelProfile:
 
     @classmethod
     def english(cls, model_root: Path | None = None) -> "ModelProfile":
-        root = model_root or Path("scripts/models_processing/models")
+        root = model_root or DEFAULT_MODEL_ROOT
         return cls(
             language=Language.EN,
             qa_model=str(root / "bert_eng_qa_baseroberta_model"),
@@ -29,7 +34,7 @@ class ModelProfile:
 
     @classmethod
     def russian(cls, model_root: Path | None = None) -> "ModelProfile":
-        root = model_root or Path("scripts/models_processing/models")
+        root = model_root or DEFAULT_MODEL_ROOT
         return cls(
             language=Language.RU,
             qa_model=str(root / "rubert_ru_qa_model"),

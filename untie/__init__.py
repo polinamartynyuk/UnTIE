@@ -2,7 +2,12 @@
 
 from .config import Language, ModelProfile, PipelineConfig
 from .domain import Answer, FinalAnswer, Question, ScoredChunk, Sentence, TextChunk
-from .pipelines import AnswerPipeline, AttentionRerankingPipeline, DocumentProcessor
+from .pipelines import (
+    AnswerPipeline,
+    AttentionRerankingPipeline,
+    DocumentProcessor,
+    StaticKeywordRerankingPipeline,
+)
 
 __all__ = [
     "Answer",
@@ -16,5 +21,6 @@ __all__ = [
     "Question",
     "ScoredChunk",
     "Sentence",
+    "StaticKeywordRerankingPipeline",
     "TextChunk",
 ]
