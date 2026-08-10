@@ -1,5 +1,8 @@
 # Настройка статических ключевых слов для извлечения информации
 
+Концептуальное описание алгоритмов извлечения и математической постановки
+настройки — в [`information-extraction-concepts.md`](information-extraction-concepts.md).
+
 ## 1. Назначение
 
 Алгоритм подбирает для тематического аспекта небольшой общий словарь ключевых
@@ -28,7 +31,8 @@ flowchart TD
     Split --> Evidence[Сбор evidence и QA-кэш]
     Evidence --> TrainCandidates[Кандидаты только из train]
     TrainCandidates --> Pool[Агрегация и фильтрация пула]
-    Pool --> Strategies[Сетка стратегий reranking]
+    Pool --> Prescreen[Prescreening одиночных термов]
+    Prescreen --> Strategies[Сетка стратегий reranking]
     Strategies --> SFFS[Multi-fidelity SFFS]
     SFFS --> Stability[Stability selection]
     Stability --> DevChoice[Выбор по dev]
@@ -42,8 +46,9 @@ flowchart TD
 
 - `untie.keyword_evidence` — сбор и хранение evidence, кэш метрик, cached
   reranking;
-- `untie.keyword_tuning` — split, objective, панели и SFFS;
-- `untie.keyword_training` — стратегии, stability selection и оркестрация;
+- `untie.keyword_tuning` — split, objective, панели, SFFS и selection policies;
+- `untie.keyword_training` — стратегии, prescreening, stability selection и оркестрация;
+- `untie.keyword_diagnostics` — аудит pool/prescreen/SFFS/stability по сохранённым артефактам;
 - `untie.extraction_metrics` — метрики извлечения;
 - `untie.model_params` — схема и атомарное сохранение модели.
 
@@ -138,11 +143,14 @@ transformer-модели. Кэш не является результатом н
 `aggregate_candidate_pool` работает только с train evidence:
 
 - surface forms нормализуются (`casefold`, пробелы, пунктуация);
+- удаляются stop words и generic-глаголы (`strive`, `formulate`, …);
 - кандидаты ниже `min_document_support` удаляются;
+- при `require_chunk_support=True` (default) отбрасываются термы с
+  `chunk_support_rate = 0`;
 - attention и score difference агрегируются медианой по документам, что
   уменьшает влияние выбросов;
-- кандидаты сортируются по document support, score difference, attention и
-  имени;
+- кандидаты сортируются по document support, chunk support rate, score
+  difference, attention и имени;
 - размер ограничивается `max_candidates`.
 
 Для итогового `WeightedKeyword` наиболее частая пара `(lemma, stem)` выбирается
@@ -201,37 +209,66 @@ quality = Σ normalized_metric_weight × normalized_metric
 `token_f1` перед объединением делится на 100. Без BERTScore три веса
 перенормируются до суммы 1; с BERTScore участвуют четыре метрики.
 
+При `--tuning-exact-match` (default ON) для objective используется пресет
+`MetricWeights.exact_match()` (char/token F1 = 0.4, ROUGE-L = 0.2); BERTScore
+в objective не участвует, даже если `--include-bertscore` включён.
+
 ## 9. Целевая функция
 
 Для каждого документа вычисляется:
 
 ```text
 delta = tuned_quality − baseline_quality
+activation_rate = 1 − fallback_rate
+harmful_fallback_rate = доля docs, где fallback=True и delta < 0
 ```
 
-Далее:
+Базовый gain зависит от `--use-conditional-gain` (default ON):
+
+```text
+gain = mean_gain_active   # средний delta только на docs с fallback=False
+     если active docs есть;
+     иначе mean_gain по всем docs
+```
+
+Полная формула objective:
 
 ```text
 objective =
-    mean_gain
-    + confidence_weight × bootstrap_lower_bound
-    − downside_penalty × mean(max(0, −delta))
-    − harm_penalty × harm_rate
-    − fallback_penalty × fallback_rate
-    − size_penalty × number_of_keywords
+    gain
+  + activation_weight × activation_rate
+  + win_rate_weight × win_rate
+  + confidence_weight × bootstrap_lower_bound
+  − downside_penalty × mean(max(0, −delta))
+  − harm_penalty × harm_rate
+  − fallback_penalty × harmful_fallback_rate
+  − inactive_fallback_penalty × fallback_rate   # только для непустого subset
+  − size_penalty × |keywords|
 ```
 
-По умолчанию orchestration использует:
+Bootstrap lower bound считается по `active_deltas`, если включён conditional
+gain и есть active docs; иначе — по всем `deltas`.
+
+Hard gate: для непустого subset, если `activation_rate < min_activation_rate`,
+objective = −∞. Это отсекает «редкие безопасные» keywords с высоким fallback.
+
+По умолчанию CLI (`scripts/05_Tune_model_keywords.py`) передаёт:
 
 - `downside_penalty = 0.75`;
 - `harm_penalty = 0.5`;
-- `fallback_penalty = 0.1`;
-- `size_penalty = 0.002`;
+- `fallback_penalty = 0.1` — только **вредный** fallback;
+- `inactive_fallback_penalty = 0.05` — idle fallback при непустом subset;
+- `size_penalty = 0.002` (`--size-penalty`);
 - `harm_threshold = 0.01`;
-- `confidence_weight = 0.25`.
+- `confidence_weight = 0.25`;
+- `activation_weight = 0.15`;
+- `min_activation_rate = 0.20`;
+- `win_rate_weight = 0.10`;
+- `use_conditional_gain = true`.
 
-Таким образом, оптимизируется не только среднее улучшение: отдельно штрафуются
-ухудшения, нестабильность, частый fallback и слишком большой словарь.
+Таким образом, оптимизируется улучшение на active docs, стабильность,
+activation rate и win rate; отдельно штрафуются ухудшения, вредный и idle
+fallback, а также слишком большой словарь.
 
 ## 10. Critical и guard документы
 
@@ -266,56 +303,9 @@ Checkpoint каждого запуска сохраняется в:
 
 Checkpoint используется только при совпадении fingerprint.
 
-## 12. Stability selection и политики финального отбора
+## 12. Отбор словаря после формирования pool
 
-SFFS повторяется `stability_runs` раз на детерминированных 80%-подвыборках dev.
-После SFFS применяется политика финального отбора (`--selection-policy`):
-
-| Политика | Поведение |
-|---|---|
-| `strict` | Частота выбора не ниже `stability_threshold`, затем backward pruning |
-| `relaxed` | То же с более низким порогом (по умолчанию 0.4) |
-| `union` | Объединение всех run-selections, затем pruning |
-| `best_run` | Лучший одиночный stability run по dev objective |
-| `frequency_top_k` | Top-k слов по частоте выбора в runs |
-
-**Non-empty rescue guard** (`--require-non-empty`, по умолчанию включён):
-если stability даёт пустой набор, но существует непустой кандидат с
-`mean_gain > 0` и `harm_rate <= harm_cap`, он сохраняется вместо пустого
-словаря.
-
-## 12.1 Prescreening кандидатов
-
-Перед SFFS каждый терм из pool оценивается по одиночке на full dev
-(`--screen-top-k`, по умолчанию 40). Это сокращает перебор generic-слов и
-оставляет бюджет для комбинаций из 2–3 ключевых слов.
-
-## 12.2 Objective, fallback и activation
-
-Штраф `fallback_penalty` применяется только к **вредному fallback** (delta < 0).
-Для непустого subset дополнительно штрафуется **idle fallback** — когда keywords
-не матчат чанки (`inactive_fallback_penalty * fallback_rate`).
-
-Activation-aware objective (balanced defaults):
-
-```text
-gain = mean_gain_active   # средний delta только на docs с fallback=False
-objective = gain
-  + activation_weight * activation_rate
-  + win_rate_weight * win_rate
-  - inactive_fallback_penalty * fallback_rate
-  - harm_penalty * harm_rate
-  - ...
-```
-
-Hard gate: если `activation_rate < min_activation_rate` (default 0.20) для
-непустого subset, objective = −∞. Это не даёт выбирать «редкие безопасные»
-keywords с fallback ~84%.
-
-При `--use-conditional-gain` (default ON) tuning оптимизирует **реальное
-улучшение на active docs**, а не mean_gain, размазанный по tie/fallback.
-
-## 12.3 Candidate pool (только текст документов)
+### 12.1 Candidate pool (только текст документов)
 
 По умолчанию pool строится **только** из attention/QA evidence, собранного из
 текста train-документов. Gold task labels **не** добавляются в pool.
@@ -326,6 +316,51 @@ keywords с fallback ~84%.
 
 Опционально (не рекомендуется): `--enrich-train-references` добавляет n-grams из
 train gold references. Это подмешивает task labels, а не текстовые сигналы.
+
+### 12.2 Prescreening кандидатов
+
+Если `--screen-before-search` (default ON), перед SFFS каждый терм из pool
+оценивается по одиночке на full dev. Остаются top-`--screen-top-k` (default 40)
+по `mean_gain_active`, `activation_rate`, `objective`. Термы с
+`harm_rate > harm_cap` или слишком низкой predicted activation отбрасываются.
+Это сокращает перебор generic-слов и оставляет бюджет для комбинаций из 2–3
+ключевых слов.
+
+### 12.3 Stability selection и политики финального отбора
+
+SFFS повторяется `stability_runs` раз на детерминированных 80%-подвыборках dev.
+После SFFS применяется политика финального отбора (`--selection-policy`):
+
+| Политика | Поведение |
+|---|---|
+| `strict` | Частота выбора не ниже `--stability-threshold`, затем backward pruning |
+| `relaxed` | То же, что `strict` (алиас с тем же порогом; default policy) |
+| `union` | Объединение всех run-selections, затем pruning |
+| `best_run` | Лучший одиночный stability run по dev rank key |
+| `frequency_top_k` | Top-`max_rescue_keywords` слов по частоте выбора в runs |
+
+Политики `strict` и `relaxed` в текущей реализации эквивалентны: обе вызывают
+`stability_selection` с порогом `--stability-threshold` (default 0.4).
+
+**Non-empty rescue guard** (`--require-non-empty`, по умолчанию включён):
+финальный набор выбирается в порядке приоритета:
+
+1. stable subset, если проходит `activation_acceptable`;
+2. иначе лучший кандидат из rescue pool с `activation_acceptable`;
+3. иначе лучший кандидат по rank key (`mean_gain_active`, `activation_rate`,
+   `harm_rate`, `objective`), если `--require-non-empty`;
+4. при необходимости subset дополняется до `--min-keywords`.
+
+`activation_acceptable` для непустого subset:
+
+```text
+activation_rate >= min_activation_rate
+and mean_gain_active >= −0.01
+and harm_rate <= harm_cap
+```
+
+Rescue pool включает stable subset, union всех run-selections, результаты
+отдельных runs/SFFS и одиночные термы из top prescreen.
 
 После stability selection выполняется backward pruning на полном dev. Лучшая
 стратегия выбирается лексикографически по `mean_gain_active`, `activation_rate`,
@@ -343,11 +378,15 @@ train gold references. Это подмешивает task labels, а не тек
 
 ```text
 test_mean_gain > 0
+and test_activation_rate >= min_activation_rate
+and test_win_rate >= test_loss_rate
+and test_harm_rate <= harm_cap
 and test_confidence_lower_bound >= 0
-and test_harm_rate <= 0.1
 ```
 
-Флаг является автоматическим gate, а не гарантией production-качества.
+Пороги `min_activation_rate` и `harm_cap` берутся из параметров запуска
+(default 0.20 и 0.12). Флаг является автоматическим gate, а не гарантией
+production-качества.
 
 ## 14. Сохранение модели
 
@@ -387,6 +426,9 @@ python scripts/05_Tune_model_keywords.py \
   --include-bertscore
 ```
 
+При default `--tuning-exact-match` флаг `--include-bertscore` не влияет на
+objective tuning (BERTScore включается только с `--no-tuning-exact-match`).
+
 Быстрая проверка одной стратегии на подвыборке:
 
 ```bash
@@ -421,10 +463,26 @@ python -m untie.cli article.txt \
   --question "Which task was solved?"
 ```
 
+Готовые shell-профили для полных EN-прогонов (text-only pool, без enrichment):
+
+- `scripts/run_en_text_only_v4.sh` — словарь до 8 keywords, `union` policy;
+- `scripts/run_en_text_only_v5.sh` — relaxed filtering, до 10 keywords,
+  `min-keywords 6`;
+- `scripts/run_en_large_dict_v3.sh` — профиль `full_large` с `min-keywords 4`.
+
+Все профили пишут артефакты в
+`experiments/analysis_results/keyword_tuning_task/en/` и переиспользуют evidence
+из `artifacts/keyword_tuning_notebooks`.
+
 ## 16. Основные параметры
 
 | Параметр | Default | Значение |
 |---|---:|---|
+| `--language` | en | язык датасета и модели |
+| `--field-id` | первое поле | какое поле модели настраивать |
+| `--cache-dir` | `artifacts/keyword_tuning_cache` | evidence, checkpoints, metrics |
+| `--output` | `model_params/scart_tuned_model.json` / `model_params/ruserrc_tuned_model.json` | tuned model JSON |
+| `--trace` | `{output}.tuning.json` | полный trace настройки |
 | `--seed` | 42 | split, bootstrap, панели |
 | `--attention-top-k` | 100 | attention-кандидаты из чанка |
 | `--min-document-support` | 2 | минимум train-документов |
@@ -434,23 +492,30 @@ python -m untie.cli article.txt \
 | `--patience` | 2 | шаги без улучшения |
 | `--beam-width` | 5 | ширина forward beam |
 | `--stability-runs` | 5 | число повторов |
-| `--stability-threshold` | 0.4 | минимальная частота выбора |
+| `--stability-threshold` | 0.4 | минимальная частота выбора (`strict`/`relaxed`) |
 | `--selection-policy` | relaxed | политика финального отбора |
 | `--require-non-empty` | true | не возвращать пустой словарь, если есть лучший кандидат |
-| `--harm-cap` | 0.12 | максимальный harm rate для rescue и release gate |
+| `--harm-cap` | 0.12 | максимальный harm rate для prescreen, rescue и release gate |
 | `--activation-weight` | 0.15 | бонус за activation rate (1 − fallback) |
 | `--min-activation-rate` | 0.20 | hard gate: минимальная доля active docs |
 | `--inactive-fallback-penalty` | 0.05 | штраф idle fallback при непустом subset |
 | `--use-conditional-gain` | true | mean_gain только на active docs |
 | `--win-rate-weight` | 0.10 | бонус за долю docs с delta > harm_threshold |
+| `--size-penalty` | 0.002 | штраф за размер словаря в objective |
 | `--min-enriched-support` | 8 | минимальный document_support для enriched terms |
 | `--max-rescue-keywords` | 5 | максимум терминов в rescue/frequency fallback |
 | `--min-keywords` | 1 | нижняя граница backward pruning (для `full_large` — 4) |
+| `--screen-before-search` | true | prescreening перед SFFS |
 | `--screen-top-k` | 40 | число кандидатов после prescreening |
 | `--tuning-exact-match` | true | exact-match веса для tuning objective |
 | `--enrich-train-references` | false | добавлять train gold n-grams в pool (не рекомендуется) |
 | `--relaxed-contrast` | true | мягкий contrast при сборе evidence |
-| `--include-bertscore` | false | включить BERTScore в objective |
+| `--include-bertscore` | false | включить BERTScore в objective (если `--no-tuning-exact-match`) |
+| `--chunk-max-tokens` | EN 384 / RU 128 | размер чанка |
+| `--overlap-tokens` | EN 50 / RU 24 | перекрытие чанков |
+| `--limit` | — | ограничить число строк датасета до split |
+| `--device` | auto | устройство для transformer-моделей |
+| `--log-level` | INFO | уровень логирования |
 
 Для RU по умолчанию используются чанки 128/24, для EN — 384/50.
 
@@ -469,14 +534,25 @@ python -m untie.cli article.txt \
 - `--limit` берёт первые строки до split и может менять распределение данных.
 - Regex matching lemma/stem ограниченно работает для дефисных и составных
   терминов.
+- Модуль `untie.keyword_diagnostics` и ноутбук
+  `08_Keyword_tuning_diagnostics_en.ipynb` позволяют разобрать funnel
+  pool → prescreen → SFFS → stability по сохранённым evidence и trace без
+  повторного tuning.
 
-## 18. Демонстрационные ноутбуки
+## 18. Ноутбуки
+
+**Tuning (полный pipeline):**
 
 - `experiments/notebooks/06_Keyword_tuning_task_en.ipynb`;
-- `experiments/notebooks/07_Keyword_tuning_task_ru.ipynb`;
-- `experiments/notebooks/08_Keyword_tuning_diagnostics_en.ipynb` — пошаговая диагностика pool/prescreen/SFFS/stability по сохранённому trace (без повторного tuning).
+- `experiments/notebooks/07_Keyword_tuning_task_ru.ipynb`.
 
-Каждый ноутбук имеет режимы `sample` и `full`, показывает progress bars,
-диагностику настройки, сохраняет отдельную tuned-модель и сравнивает baseline
-с `static-keywords` на held-out test по всем доступным метрикам. Результаты
-записываются в `experiments/analysis_results/keyword_tuning_task/{en,ru}`.
+Ноутбуки 06 и 07 имеют режимы `sample` и `full`, показывают progress bars,
+диагностику настройки, сохраняют отдельную tuned-модель и сравнивают baseline
+с `static-keywords` на held-out test. Результаты записываются в
+`experiments/analysis_results/keyword_tuning_task/{en,ru}`.
+
+**Diagnostics (без повторного tuning):**
+
+- `experiments/notebooks/08_Keyword_tuning_diagnostics_en.ipynb` — пошаговая
+  визуализация pool/prescreen/SFFS/stability по evidence-кэшу и
+  `*.tuning.json`.

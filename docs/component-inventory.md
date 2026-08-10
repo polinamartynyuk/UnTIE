@@ -15,6 +15,12 @@
 - `untie.keyword_evidence` — train-only evidence и кэши chunks/QA/metrics.
 - `untie.keyword_tuning`, `untie.keyword_training` — objective, SFFS,
   stability selection и сборка глобального словаря.
+- `untie.keyword_diagnostics` — аудит pool/prescreen/SFFS/stability по
+  сохранённым evidence и trace JSON.
+
+Документация: [`information-extraction-concepts.md`](information-extraction-concepts.md)
+(концепции и формулы), [`keyword-tuning-algorithm.md`](keyword-tuning-algorithm.md)
+(операционное описание настройки).
 
 ## Слой совместимости
 
@@ -24,11 +30,16 @@
 - `scripts/03_Keywords_with_attention_refactored.py` — refactored EN batch через `untie`.
 - `scripts/03_Keywords_with_attention_refactored_ru.py` — refactored RU batch для RusErrC.
 - `scripts/05_Tune_model_keywords.py` — leakage-safe сборка EN/RU tuned-модели.
+- `scripts/run_en_text_only_v4.sh`, `scripts/run_en_text_only_v5.sh`,
+  `scripts/run_en_large_dict_v3.sh` — готовые shell-профили полного EN tuning.
 
 ## Сохранённые эксперименты
 
 - Нумерованные ноутбуки: историческое исследование chunking, QA, attention, RAG,
   русских датасетов, Qwen и анализа результатов.
+- `06_Keyword_tuning_task_en.ipynb`, `07_Keyword_tuning_task_ru.ipynb` —
+  полный tuning pipeline; `08_Keyword_tuning_diagnostics_en.ipynb` —
+  диагностика по сохранённым артефактам.
 - `scripts/models_processing/save_model_scripts` — заменено на `tools/model_download/download.py`.
 - Сгенерированные CSV, JSON, PNG и log-файлы — локальные артефакты.
 
