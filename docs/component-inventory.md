@@ -7,6 +7,8 @@
 - `untie.text`, `untie.chunking` — разбиение на предложения и перекрывающиеся чанки.
 - `untie.qa` — извлечение, валидация, агрегация и консенсус ответов.
 - `untie.keywords`, `untie.ranking`, `untie.attention` — этапы переранжирования.
+- `untie.topics` — versioned train-only topic artifact, hierarchy, soft routing,
+  aspect/topic scoring, dev config selection и retrieval/compute metrics.
 - `untie.pipelines` — сценарии baseline и attention.
 - `untie.cli` — поддерживаемая точка входа из командной строки.
 - `untie.results_analysis` — анализ JSON-результатов batch-экспериментов.
@@ -15,6 +17,8 @@
 - `untie.keyword_evidence` — train-only evidence и кэши chunks/QA/metrics.
 - `untie.keyword_tuning`, `untie.keyword_training` — objective, SFFS,
   stability selection и сборка глобального словаря.
+- `untie.topic_keyword_training` — leakage-safe SFFS-профили словарей для
+  train-derived topic clusters и nearest-leaf assignments.
 - `untie.keyword_diagnostics` — аудит pool/prescreen/SFFS/stability по
   сохранённым evidence и trace JSON.
 
@@ -30,6 +34,10 @@
 - `scripts/03_Keywords_with_attention_refactored.py` — refactored EN batch через `untie`.
 - `scripts/03_Keywords_with_attention_refactored_ru.py` — refactored RU batch для RusErrC.
 - `scripts/05_Tune_model_keywords.py` — leakage-safe сборка EN/RU tuned-модели.
+- `scripts/06_Build_topic_model.py` — train-only сборка и диагностика
+  иерархического topic artifact.
+- `scripts/07_Tune_topic_keywords.py` — добавление cluster-specific словарей
+  в topic artifact поверх train/dev evidence.
 - `scripts/run_en_text_only_v4.sh`, `scripts/run_en_text_only_v5.sh`,
   `scripts/run_en_large_dict_v3.sh` — готовые shell-профили полного EN tuning.
 

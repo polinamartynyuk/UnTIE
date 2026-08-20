@@ -12,9 +12,11 @@ from .pipelines import (
     AnswerPipeline,
     AttentionRerankingPipeline,
     DocumentProcessor,
+    HierarchicalTopicRerankingPipeline,
     StaticKeywordRerankingPipeline,
 )
 from .ranking import WeightedKeyword
+from .topics import TopicArtifactError, load_topic_artifact
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,14 +26,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--language", choices=("en", "ru"), default="en")
     parser.add_argument(
         "--mode",
-        choices=("baseline", "attention", "static-keywords"),
+        choices=(
+            "baseline",
+            "attention",
+            "static-keywords",
+            "hierarchical-static-keywords",
+        ),
         default="baseline",
     )
     parser.add_argument("--reference-answer", help="Required by attention mode")
     parser.add_argument(
         "--model-params",
         type=Path,
-        help="Tuned model JSON required by static-keywords mode",
+        help="Tuned static-keyword model JSON",
+    )
+    parser.add_argument(
+        "--topic-model",
+        type=Path,
+        help="Versioned topic artifact required by hierarchical-static-keywords mode",
+    )
+    parser.add_argument(
+        "--topic-encoder-revision",
+        help="Optional expected encoder revision/fingerprint for compatibility checks",
     )
     parser.add_argument("--field-id", type=int)
     parser.add_argument("--device", default="auto")
@@ -73,6 +89,10 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--reference-answer is required in attention mode")
     if args.mode == "static-keywords" and not args.model_params:
         raise SystemExit("--model-params is required in static-keywords mode")
+    if args.mode == "hierarchical-static-keywords" and not args.topic_model:
+        raise SystemExit(
+            "--topic-model is required in hierarchical-static-keywords mode"
+        )
 
     config = PipelineConfig(
         profile=profile_for_language(args.language),
@@ -80,6 +100,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.mode == "attention" and not config.profile.attention_supported:
         raise SystemExit(f"Attention mode is not supported by the {args.language} profile")
+
+    keywords: list[WeightedKeyword] = []
+    strategy: dict[str, object] = {}
+    topic_artifact = None
+    try:
+        if args.mode in {"static-keywords", "hierarchical-static-keywords"}:
+            if args.model_params:
+                keywords, strategy = load_static_keywords(
+                    args.model_params, args.field_id
+                )
+        if args.mode == "hierarchical-static-keywords":
+            topic_artifact = load_topic_artifact(args.topic_model)
+    except (ValueError, TopicArtifactError) as error:
+        raise SystemExit(str(error)) from error
 
     models = ModelFactory(config)
     processor = DocumentProcessor(
@@ -103,13 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             config,
             attention,
         ).run(text, args.question, args.reference_answer)
-    else:
-        try:
-            keywords, strategy = load_static_keywords(
-                args.model_params, args.field_id
-            )
-        except ValueError as error:
-            raise SystemExit(str(error)) from error
+    elif args.mode == "static-keywords":
         result = StaticKeywordRerankingPipeline(
             processor,
             models.answerer,
@@ -131,6 +159,35 @@ def main(argv: list[str] | None = None) -> int:
                 strategy.get("choose_answer_strategy", "combined_score")
             ),
         )
+    else:
+        if topic_artifact is None:  # Defensive: parser validation requires it.
+            raise SystemExit("topic artifact was not loaded")
+        try:
+            result = HierarchicalTopicRerankingPipeline(
+                processor,
+                models.answerer,
+                models.sentence_encoder,
+                config,
+                topic_artifact,
+                keywords,
+                static_weight_ratio={
+                    "only_score_diff": 0.0,
+                    "only_weight": 1.0,
+                    "equal_weight_score_diff": 0.5,
+                }.get(str(strategy.get("score_chunk_strategy", "")), 0.5),
+                expected_encoder_revision=args.topic_encoder_revision,
+            ).run(
+                text,
+                args.question,
+                cluster_strategy=str(
+                    strategy.get("choose_cluster_strategy", "weighted_score")
+                ),
+                answer_strategy=str(
+                    strategy.get("choose_answer_strategy", "combined_score")
+                ),
+            )
+        except TopicArtifactError as error:
+            raise SystemExit(str(error)) from error
 
     payload = {
         "answer": result.final_answer.text if result.final_answer else None,

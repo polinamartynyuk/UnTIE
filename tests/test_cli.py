@@ -38,6 +38,56 @@ def test_static_mode_requires_model_params(tmp_path) -> None:
         )
 
 
+def test_hierarchical_mode_requires_only_topic_model(tmp_path) -> None:
+    args = build_parser().parse_args(
+        [
+            "document.txt",
+            "--question",
+            "Which task?",
+            "--mode",
+            "hierarchical-static-keywords",
+            "--topic-model",
+            "topics.json",
+        ]
+    )
+    assert args.topic_model.name == "topics.json"
+    assert args.model_params is None
+
+    document = tmp_path / "doc.txt"
+    document.write_text("text", encoding="utf-8")
+    with pytest.raises(SystemExit, match="--topic-model"):
+        main(
+            [
+                str(document),
+                "--question",
+                "Which task?",
+                "--mode",
+                "hierarchical-static-keywords",
+            ]
+        )
+
+
+def test_hierarchical_mode_rejects_bad_artifact_before_model_loading(
+    tmp_path,
+) -> None:
+    document = tmp_path / "doc.txt"
+    document.write_text("text", encoding="utf-8")
+    artifact = tmp_path / "bad-topic.json"
+    artifact.write_text('{"model_name": "old static artifact"}', encoding="utf-8")
+    with pytest.raises(SystemExit, match="schema_version"):
+        main(
+            [
+                str(document),
+                "--question",
+                "Which task?",
+                "--mode",
+                "hierarchical-static-keywords",
+                "--topic-model",
+                str(artifact),
+            ]
+        )
+
+
 def test_load_static_keywords_uses_metadata_and_strategy(tmp_path) -> None:
     path = tmp_path / "tuned.json"
     path.write_text(

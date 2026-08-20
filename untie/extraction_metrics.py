@@ -6,8 +6,11 @@
 
 from __future__ import annotations
 
+import re
+import string
 from collections import Counter
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -96,21 +99,90 @@ _squad_metric: Any | None = None
 _rouge_scorer: Any | None = None
 
 
+def _squad_tokens(text: str) -> list[str]:
+    lowered = text.lower()
+    without_punctuation = "".join(
+        character for character in lowered if character not in string.punctuation
+    )
+    without_articles = re.sub(r"\b(a|an|the)\b", " ", without_punctuation)
+    return without_articles.split()
+
+
+class _LocalSquadMetric:
+    """Small dependency-free equivalent of the SQuAD token-F1 computation."""
+
+    def compute(self, *, predictions: list[dict], references: list[dict]) -> dict[str, float]:
+        scores = []
+        for prediction, reference in zip(predictions, references):
+            predicted = _squad_tokens(str(prediction["prediction_text"]))
+            gold_items = reference["answers"]["text"]
+            best = 0.0
+            for gold in gold_items:
+                expected = _squad_tokens(str(gold))
+                common = sum((Counter(predicted) & Counter(expected)).values())
+                if not predicted or not expected or common == 0:
+                    score = float(predicted == expected)
+                else:
+                    precision = common / len(predicted)
+                    recall = common / len(expected)
+                    score = 2 * precision * recall / (precision + recall)
+                best = max(best, score)
+            scores.append(best * 100.0)
+        return {"f1": sum(scores) / len(scores) if scores else 0.0}
+
+
+@dataclass(frozen=True)
+class _LocalRougeScore:
+    fmeasure: float
+
+
+class _LocalRougeScorer:
+    """Dependency-free ROUGE-L F1 fallback used by the core test install."""
+
+    def score(self, reference: str, prediction: str) -> dict[str, _LocalRougeScore]:
+        left = re.findall(r"\w+", reference.casefold())
+        right = re.findall(r"\w+", prediction.casefold())
+        lengths = [0] * (len(right) + 1)
+        for left_token in left:
+            previous = 0
+            for index, right_token in enumerate(right, start=1):
+                saved = lengths[index]
+                if left_token == right_token:
+                    lengths[index] = previous + 1
+                else:
+                    lengths[index] = max(lengths[index], lengths[index - 1])
+                previous = saved
+        common = lengths[-1]
+        if not left or not right or common == 0:
+            fmeasure = float(left == right)
+        else:
+            precision = common / len(right)
+            recall = common / len(left)
+            fmeasure = 2 * precision * recall / (precision + recall)
+        return {"rougeL": _LocalRougeScore(fmeasure)}
+
+
 def _get_squad_metric() -> Any:
     global _squad_metric
     if _squad_metric is None:
-        import evaluate
-
-        _squad_metric = evaluate.load("squad")
+        try:
+            import evaluate
+        except ImportError:
+            _squad_metric = _LocalSquadMetric()
+        else:
+            _squad_metric = evaluate.load("squad")
     return _squad_metric
 
 
 def _get_rouge_scorer() -> Any:
     global _rouge_scorer
     if _rouge_scorer is None:
-        from rouge_score import rouge_scorer
-
-        _rouge_scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+        try:
+            from rouge_score import rouge_scorer
+        except ImportError:
+            _rouge_scorer = _LocalRougeScorer()
+        else:
+            _rouge_scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
     return _rouge_scorer
 
 

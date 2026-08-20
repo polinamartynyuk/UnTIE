@@ -6,8 +6,10 @@ from .pipelines import (
     AnswerPipeline,
     AttentionRerankingPipeline,
     DocumentProcessor,
+    HierarchicalTopicRerankingPipeline,
     StaticKeywordRerankingPipeline,
 )
+from .topics import TopicArtifact, TopicDocument, TopicKeywordProfile
 
 __all__ = [
     "Answer",
@@ -15,6 +17,7 @@ __all__ = [
     "AttentionRerankingPipeline",
     "DocumentProcessor",
     "FinalAnswer",
+    "HierarchicalTopicRerankingPipeline",
     "Language",
     "ModelProfile",
     "PipelineConfig",
@@ -23,4 +26,7 @@ __all__ = [
     "Sentence",
     "StaticKeywordRerankingPipeline",
     "TextChunk",
+    "TopicArtifact",
+    "TopicDocument",
+    "TopicKeywordProfile",
 ]

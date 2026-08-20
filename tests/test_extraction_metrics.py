@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+import untie.extraction_metrics as metrics_module
 from untie.extraction_metrics import (
     METRIC_COLUMNS,
     bertscore_metrics,
@@ -45,6 +46,21 @@ def test_rouge_l_f1_exact_match() -> None:
 def test_token_f1_exact_match() -> None:
     pytest.importorskip("evaluate")
     assert token_f1("the cat sat on the mat", "the cat sat on the mat") == pytest.approx(100.0)
+
+
+def test_dependency_free_metric_fallbacks_match_basic_normalization() -> None:
+    rouge = metrics_module._LocalRougeScorer().score("The cat.", "the cat")
+    assert rouge["rougeL"].fmeasure == pytest.approx(1.0)
+    squad = metrics_module._LocalSquadMetric().compute(
+        predictions=[{"id": "0", "prediction_text": "The cat."}],
+        references=[
+            {
+                "id": "0",
+                "answers": {"text": ["the cat"], "answer_start": [0]},
+            }
+        ],
+    )
+    assert squad["f1"] == pytest.approx(100.0)
 
 
 def test_compute_row_metrics_without_bertscore() -> None:

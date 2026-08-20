@@ -83,6 +83,42 @@ python -m untie.cli article.txt \
   --question "Which task was solved?"
 ```
 
+## Иерархическая тематическая адаптация
+
+Экспериментальный режим автоматически маршрутизирует документ по train-only
+иерархии тематик и совместно использует независимые aspect/topic сигналы:
+
+```bash
+python3 scripts/06_Build_topic_model.py \
+  --train-dataset datasets/topic_train.jsonl \
+  --output artifacts/topics/topic_model.json \
+  --language en
+
+# После предварительного сбора evidence скриптом 05:
+python3 scripts/07_Tune_topic_keywords.py \
+  --topic-model artifacts/topics/topic_model.json \
+  --dataset datasets/scirex_structured.json \
+  --evidence-dir artifacts/keyword_tuning_cache/en/field-1/evidence \
+  --output artifacts/topics/topic_model.cluster_keywords.json \
+  --language en
+
+python3 -m untie.cli article.txt \
+  --language en \
+  --mode hierarchical-static-keywords \
+  --topic-model artifacts/topics/topic_model.cluster_keywords.json \
+  --model-params model_params/scart_tuned_model.json \
+  --question "Which task was solved?"
+```
+
+`--model-params` во втором вызове опционален и задаёт aspect keywords плюс
+fallback к старому режиму. Пользовательскую метку темы и reference answer новый
+режим не принимает. Если artifact содержит cluster-specific SFFS-профили,
+ближайший leaf выбирает собственный словарь и фильтрует чанки тем же механизмом,
+что `static-keywords`; затем используются global static и baseline fallback.
+Старые artifacts без профилей остаются совместимыми.
+Формат artifact, anti-leakage правила, dev tuning и диагностика описаны в
+[`docs/hierarchical-topic-reranking.md`](docs/hierarchical-topic-reranking.md).
+
 ## Python API
 
 Реализации моделей подключаются через протоколы в `untie.protocols`. Это позволяет тестировать пайплайн без Hugging Face, GPU и локальных весов. Для production-загрузки используйте `untie.models.ModelFactory`.
@@ -94,6 +130,7 @@ python -m untie.cli article.txt \
 - `untie.text`, `untie.chunking` — подготовка документа
 - `untie.qa` — извлечение, валидация, агрегация и консенсус ответов
 - `untie.keywords`, `untie.attention`, `untie.ranking` — переранжирование
+- `untie.topics` — train-only topic artifact, hierarchy, routing и topic-aware scoring
 - `untie.pipelines` — оркестрация baseline и attention
 
 ## Тесты
