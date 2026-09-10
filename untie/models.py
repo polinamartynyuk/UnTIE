@@ -84,6 +84,8 @@ class ExtractiveQuestionAnswerer:
             "score": float(start_probability * end_probability),
             "start": start_offset,
             "end": end_offset,
+            "start_logit": float(start_logits[best_start]),
+            "end_logit": float(end_logits[best_end]),
         }
 
 

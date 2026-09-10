@@ -441,8 +441,23 @@ class TopicArtifact:
         clustering = _mapping(value.get("clustering"), "clustering")
         params = dict(_mapping(clustering.get("params", {}), "clustering.params"))
         params["stop_words"] = tuple(params.get("stop_words", ()))
+        params = {
+            key: value_
+            for key, value_ in params.items()
+            if key in TopicBuildConfig.__dataclass_fields__
+        }
         routing = _mapping(value.get("routing", {}), "routing")
+        routing = {
+            key: value_
+            for key, value_ in routing.items()
+            if key in TopicRoutingConfig.__dataclass_fields__
+        }
         mixing = _mapping(value.get("mixing", {}), "mixing")
+        mixing = {
+            key: value_
+            for key, value_ in mixing.items()
+            if key in TopicMixingConfig.__dataclass_fields__
+        }
         artifact = cls(
             schema_version=version,
             encoder_name=str(encoder.get("name", "")),
@@ -923,6 +938,30 @@ def resolve_topic_match_fallback(
         TopicFallbackReason.NO_TOPIC_MATCHES,
         current.embedding,
     )
+
+
+def topic_term_match_scores(
+    chunks: Sequence[TextChunk],
+    route: TopicRoute,
+    artifact: TopicArtifact,
+) -> list[float]:
+    """Soft topic prior: representative-term hits, no chunk dropping."""
+    if not chunks:
+        return []
+    node_map = artifact.node_map
+    scores: list[float] = []
+    for chunk in chunks:
+        topic_score = 0.0
+        for routed in route.topics:
+            node = node_map[routed.node_id]
+            for term in node.representative_terms:
+                frequency = _term_count(chunk.text, term.term.casefold())
+                if frequency:
+                    topic_score += (
+                        routed.weight * term.weight * math.log1p(frequency)
+                    )
+        scores.append(float(topic_score))
+    return scores
 
 
 def score_topic_aware_chunks(

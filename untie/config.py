@@ -54,6 +54,9 @@ class PipelineConfig:
     keyword_similarity_threshold: float = 0.5
     keyword_dissimilarity_threshold: float = 0.3
     device: str = "auto"
+    merge_near_duplicate_answers: bool = False
+    answer_query_quantile: float | None = None
+    answer_query_min_keep: int = 3
 
     def __post_init__(self) -> None:
         if self.chunk_max_tokens < 4:
@@ -72,3 +75,7 @@ class PipelineConfig:
                 raise ValueError(f"{name} must be between 0 and 1")
         if self.min_answer_threshold > self.strict_answer_threshold:
             raise ValueError("min_answer_threshold cannot exceed strict_answer_threshold")
+        if self.answer_query_quantile is not None and not 0 <= self.answer_query_quantile <= 1:
+            raise ValueError("answer_query_quantile must be between 0 and 1")
+        if self.answer_query_min_keep < 1:
+            raise ValueError("answer_query_min_keep must be at least 1")

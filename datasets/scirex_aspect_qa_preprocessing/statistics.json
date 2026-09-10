@@ -1,0 +1,363 @@
+{
+  "train": {
+    "method": {
+      "documents": 306,
+      "raw_gold_entities": 448,
+      "unique_gold_entities": 443,
+      "extractable_gold_entities": 220,
+      "unextractable_gold_entities": 223,
+      "ready_instances": 158,
+      "partially_extractable_instances": 39,
+      "no_extractable_gold_instances": 109,
+      "gold_supporting_chunks": 1787,
+      "extractability_rate": 0.4966139954853273
+    },
+    "task": {
+      "documents": 306,
+      "raw_gold_entities": 374,
+      "unique_gold_entities": 374,
+      "extractable_gold_entities": 259,
+      "unextractable_gold_entities": 115,
+      "ready_instances": 207,
+      "partially_extractable_instances": 21,
+      "no_extractable_gold_instances": 78,
+      "gold_supporting_chunks": 1381,
+      "extractability_rate": 0.6925133689839572
+    },
+    "metric": {
+      "documents": 306,
+      "raw_gold_entities": 564,
+      "unique_gold_entities": 564,
+      "extractable_gold_entities": 254,
+      "unextractable_gold_entities": 310,
+      "ready_instances": 126,
+      "partially_extractable_instances": 60,
+      "no_extractable_gold_instances": 120,
+      "gold_supporting_chunks": 906,
+      "extractability_rate": 0.450354609929078
+    },
+    "material": {
+      "documents": 306,
+      "raw_gold_entities": 825,
+      "unique_gold_entities": 825,
+      "extractable_gold_entities": 268,
+      "unextractable_gold_entities": 557,
+      "ready_instances": 131,
+      "partially_extractable_instances": 50,
+      "no_extractable_gold_instances": 125,
+      "gold_supporting_chunks": 1098,
+      "extractability_rate": 0.32484848484848483
+    }
+  },
+  "dev": {
+    "method": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "task": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "metric": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "material": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    }
+  },
+  "test": {
+    "method": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "task": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "metric": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    },
+    "material": {
+      "documents": 0,
+      "raw_gold_entities": 0,
+      "unique_gold_entities": 0,
+      "extractable_gold_entities": 0,
+      "unextractable_gold_entities": 0,
+      "ready_instances": 0,
+      "partially_extractable_instances": 0,
+      "no_extractable_gold_instances": 0,
+      "gold_supporting_chunks": 0,
+      "extractability_rate": 0.0
+    }
+  },
+  "all": {
+    "method": {
+      "documents": 306,
+      "raw_gold_entities": 448,
+      "unique_gold_entities": 443,
+      "extractable_gold_entities": 220,
+      "unextractable_gold_entities": 223,
+      "ready_instances": 158,
+      "partially_extractable_instances": 39,
+      "no_extractable_gold_instances": 109,
+      "gold_supporting_chunks": 1787,
+      "extractability_rate": 0.4966139954853273
+    },
+    "task": {
+      "documents": 306,
+      "raw_gold_entities": 374,
+      "unique_gold_entities": 374,
+      "extractable_gold_entities": 259,
+      "unextractable_gold_entities": 115,
+      "ready_instances": 207,
+      "partially_extractable_instances": 21,
+      "no_extractable_gold_instances": 78,
+      "gold_supporting_chunks": 1381,
+      "extractability_rate": 0.6925133689839572
+    },
+    "metric": {
+      "documents": 306,
+      "raw_gold_entities": 564,
+      "unique_gold_entities": 564,
+      "extractable_gold_entities": 254,
+      "unextractable_gold_entities": 310,
+      "ready_instances": 126,
+      "partially_extractable_instances": 60,
+      "no_extractable_gold_instances": 120,
+      "gold_supporting_chunks": 906,
+      "extractability_rate": 0.450354609929078
+    },
+    "material": {
+      "documents": 306,
+      "raw_gold_entities": 825,
+      "unique_gold_entities": 825,
+      "extractable_gold_entities": 268,
+      "unextractable_gold_entities": 557,
+      "ready_instances": 131,
+      "partially_extractable_instances": 50,
+      "no_extractable_gold_instances": 125,
+      "gold_supporting_chunks": 1098,
+      "extractability_rate": 0.32484848484848483
+    }
+  },
+  "n_documents": 306,
+  "n_chunks": 5964,
+  "n_qa_input_rows": 15405,
+  "legacy_internal_split": {
+    "train": {
+      "method": {
+        "documents": 183,
+        "raw_gold_entities": 250,
+        "unique_gold_entities": 247,
+        "extractable_gold_entities": 131,
+        "unextractable_gold_entities": 116,
+        "ready_instances": 99,
+        "partially_extractable_instances": 19,
+        "no_extractable_gold_instances": 65,
+        "gold_supporting_chunks": 1044,
+        "extractability_rate": 0.5303643724696356
+      },
+      "task": {
+        "documents": 183,
+        "raw_gold_entities": 222,
+        "unique_gold_entities": 222,
+        "extractable_gold_entities": 152,
+        "unextractable_gold_entities": 70,
+        "ready_instances": 125,
+        "partially_extractable_instances": 10,
+        "no_extractable_gold_instances": 48,
+        "gold_supporting_chunks": 831,
+        "extractability_rate": 0.6846846846846847
+      },
+      "metric": {
+        "documents": 183,
+        "raw_gold_entities": 317,
+        "unique_gold_entities": 317,
+        "extractable_gold_entities": 146,
+        "unextractable_gold_entities": 171,
+        "ready_instances": 68,
+        "partially_extractable_instances": 38,
+        "no_extractable_gold_instances": 77,
+        "gold_supporting_chunks": 492,
+        "extractability_rate": 0.4605678233438486
+      },
+      "material": {
+        "documents": 183,
+        "raw_gold_entities": 478,
+        "unique_gold_entities": 478,
+        "extractable_gold_entities": 146,
+        "unextractable_gold_entities": 332,
+        "ready_instances": 79,
+        "partially_extractable_instances": 27,
+        "no_extractable_gold_instances": 77,
+        "gold_supporting_chunks": 644,
+        "extractability_rate": 0.3054393305439331
+      }
+    },
+    "dev": {
+      "method": {
+        "documents": 61,
+        "raw_gold_entities": 96,
+        "unique_gold_entities": 95,
+        "extractable_gold_entities": 43,
+        "unextractable_gold_entities": 52,
+        "ready_instances": 29,
+        "partially_extractable_instances": 10,
+        "no_extractable_gold_instances": 22,
+        "gold_supporting_chunks": 346,
+        "extractability_rate": 0.45263157894736844
+      },
+      "task": {
+        "documents": 61,
+        "raw_gold_entities": 80,
+        "unique_gold_entities": 80,
+        "extractable_gold_entities": 56,
+        "unextractable_gold_entities": 24,
+        "ready_instances": 41,
+        "partially_extractable_instances": 6,
+        "no_extractable_gold_instances": 14,
+        "gold_supporting_chunks": 302,
+        "extractability_rate": 0.7
+      },
+      "metric": {
+        "documents": 61,
+        "raw_gold_entities": 127,
+        "unique_gold_entities": 127,
+        "extractable_gold_entities": 56,
+        "unextractable_gold_entities": 71,
+        "ready_instances": 28,
+        "partially_extractable_instances": 11,
+        "no_extractable_gold_instances": 22,
+        "gold_supporting_chunks": 213,
+        "extractability_rate": 0.4409448818897638
+      },
+      "material": {
+        "documents": 61,
+        "raw_gold_entities": 131,
+        "unique_gold_entities": 131,
+        "extractable_gold_entities": 65,
+        "unextractable_gold_entities": 66,
+        "ready_instances": 24,
+        "partially_extractable_instances": 10,
+        "no_extractable_gold_instances": 27,
+        "gold_supporting_chunks": 206,
+        "extractability_rate": 0.4961832061068702
+      }
+    },
+    "test": {
+      "method": {
+        "documents": 62,
+        "raw_gold_entities": 102,
+        "unique_gold_entities": 101,
+        "extractable_gold_entities": 46,
+        "unextractable_gold_entities": 55,
+        "ready_instances": 30,
+        "partially_extractable_instances": 10,
+        "no_extractable_gold_instances": 22,
+        "gold_supporting_chunks": 397,
+        "extractability_rate": 0.45544554455445546
+      },
+      "task": {
+        "documents": 62,
+        "raw_gold_entities": 72,
+        "unique_gold_entities": 72,
+        "extractable_gold_entities": 51,
+        "unextractable_gold_entities": 21,
+        "ready_instances": 41,
+        "partially_extractable_instances": 5,
+        "no_extractable_gold_instances": 16,
+        "gold_supporting_chunks": 248,
+        "extractability_rate": 0.7083333333333334
+      },
+      "metric": {
+        "documents": 62,
+        "raw_gold_entities": 120,
+        "unique_gold_entities": 120,
+        "extractable_gold_entities": 52,
+        "unextractable_gold_entities": 68,
+        "ready_instances": 30,
+        "partially_extractable_instances": 11,
+        "no_extractable_gold_instances": 21,
+        "gold_supporting_chunks": 201,
+        "extractability_rate": 0.43333333333333335
+      },
+      "material": {
+        "documents": 62,
+        "raw_gold_entities": 216,
+        "unique_gold_entities": 216,
+        "extractable_gold_entities": 57,
+        "unextractable_gold_entities": 159,
+        "ready_instances": 28,
+        "partially_extractable_instances": 13,
+        "no_extractable_gold_instances": 21,
+        "gold_supporting_chunks": 248,
+        "extractability_rate": 0.2638888888888889
+      }
+    },
+    "document_counts": {
+      "train": 183,
+      "test": 62,
+      "dev": 61
+    }
+  },
+  "official_corpus_split": "train"
+}

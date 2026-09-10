@@ -1,0 +1,27 @@
+{
+  "enrichment_mode": "E0",
+  "enable_score_aspect": false,
+  "include_bibliography_in_qa": false,
+  "aspect_questions": {
+    "method": "What method or model is used or proposed in the paper?",
+    "task": "What task is addressed in the paper?",
+    "metric": "What evaluation metric is used in the paper?",
+    "material": "What dataset or material is used in the paper?"
+  },
+  "chunk_max_tokens": 384,
+  "overlap_tokens": 50,
+  "tokenizer": "qa_model",
+  "n_selected": 66,
+  "source": "datasets/scirex_dev_structured.json",
+  "fixed_split": "dev",
+  "official_corpus_split": "dev",
+  "written": {
+    "documents": "datasets/scirex_aspect_qa_preprocessing_dev/documents.parquet",
+    "chunks": "datasets/scirex_aspect_qa_preprocessing_dev/chunks.parquet",
+    "aspect_instances": "datasets/scirex_aspect_qa_preprocessing_dev/aspect_instances.parquet",
+    "gold_mentions": "datasets/scirex_aspect_qa_preprocessing_dev/gold_mentions.parquet",
+    "source_metadata": "datasets/scirex_aspect_qa_preprocessing_dev/source_metadata.parquet",
+    "enrichment": "datasets/scirex_aspect_qa_preprocessing_dev/enrichment.parquet",
+    "qa_input": "datasets/scirex_aspect_qa_preprocessing_dev/qa_input.parquet"
+  }
+}

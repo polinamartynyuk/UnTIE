@@ -1,0 +1,73 @@
+{
+  "path": "datasets/scirex_dev_structured.json",
+  "format_name": "jsonl",
+  "n_records": 66,
+  "fields_present": [
+    "doc_id",
+    "materials",
+    "methods",
+    "metrics",
+    "original_text",
+    "score",
+    "tasks"
+  ],
+  "field_frequency": {
+    "doc_id": 66,
+    "materials": 66,
+    "methods": 66,
+    "metrics": 66,
+    "original_text": 66,
+    "score": 66,
+    "tasks": 66
+  },
+  "first_record_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "first_record_preview": {
+    "doc_id": "007ff2ca5f297b04636699ce4d01ca6d6f21dc77",
+    "methods": [
+      "aESIM"
+    ],
+    "tasks": [
+      "Natural_Language_Inference"
+    ],
+    "metrics": [
+      "Matched",
+      "Mismatched",
+      "Accuracy",
+      "__Test_Accuracy"
+    ],
+    "materials": [
+      "MultiNLI",
+      "Quora_Question_Pairs",
+      "SNLI"
+    ],
+    "score": [
+      "73.9",
+      "88.01",
+      "88.1"
+    ],
+    "original_text": "document: Attention Boosted Sequential Inference Model Attention mechanism has been proven effective on natural language processing. This paper proposes an attention boosted natural language inference model named aESIM by adding word attent…"
+  },
+  "expected_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "missing_expected_fields": [],
+  "unexpected_fields": [],
+  "schema_matches_expected": true,
+  "notes": [
+    "file is JSONL, not a JSON array; parser uses line-wise JSON"
+  ]
+}

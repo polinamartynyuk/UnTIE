@@ -21,10 +21,17 @@
   train-derived topic clusters и nearest-leaf assignments.
 - `untie.keyword_diagnostics` — аудит pool/prescreen/SFFS/stability по
   сохранённым evidence и trace JSON.
+- `untie.cross_encoder_ranking` — document-level ranking чанков MiniLM
+  cross-encoder и смесь со static-словарём без drop; веса смеси только на
+  train/dev gold.
+- `untie.ce_topic_shortlist` — CE-запрос с leaf `representative_terms`,
+  shortlist top-k и финальный `AnswerAggregator`; k на dev; без SFFS-словарей.
 
 Документация: [`information-extraction-concepts.md`](information-extraction-concepts.md)
 (концепции и формулы), [`keyword-tuning-algorithm.md`](keyword-tuning-algorithm.md)
-(операционное описание настройки).
+(операционное описание настройки),
+[`sredstva-otbora-relevantnyh-chankov.md`](sredstva-otbora-relevantnyh-chankov.md)
+(каталог средств выявления релевантных чанков).
 
 ## Слой совместимости
 
@@ -38,6 +45,21 @@
   иерархического topic artifact.
 - `scripts/07_Tune_topic_keywords.py` — добавление cluster-specific словарей
   в topic artifact поверх train/dev evidence.
+- `scripts/10_Refit_hierarchical_keywords.py` — финальный train+dev refit
+  keywords при замороженных cluster/routing; по умолчанию без gold-contrast и
+  со scoring `only_weight`; пол `min_keywords` на этом шаге снижен до 4;
+  пишет отдельный `topic_model.refit.json` в `refit_no_gold_contrast/`.
+- `scripts/11_Evaluate_hierarchical_test.py` — test-only оценка hierarchical
+  модели; пишет в отдельный каталог и может переиспользовать предыдущие
+  режимы из `test_predictions_all_metrics.csv`. `--soft-rerank` отвечает на
+  всех чанках и ранжирует ответы, не затирая `evaluation/` и прошлые refit.
+- `scripts/12_Evaluate_cross_encoder.py` — изолированная оценка
+  `cross-encoder/ms-marco-MiniLM-L6-v2` по всем чанкам, затем смесь со
+  static-словарём; веса смеси подбираются на dev; test gold в ranking не
+  используется; прошлые `evaluation/` не затираются.
+- `scripts/13_Evaluate_ce_topic_shortlist.py` — CE shortlist с
+  topic-conditioned query (leaf representative terms) и baseline
+  `AnswerAggregator`; k на dev; без cluster SFFS и без overwrite прошлых eval.
 - `scripts/run_en_text_only_v4.sh`, `scripts/run_en_text_only_v5.sh`,
   `scripts/run_en_large_dict_v3.sh` — готовые shell-профили полного EN tuning.
 

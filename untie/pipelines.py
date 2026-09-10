@@ -9,18 +9,26 @@ from .domain import FinalAnswer, PipelineResult, Question, TextChunk
 from .keywords import score_keyword_contrast
 from .protocols import QuestionAnswerer, SentenceEncoder, WordTokenizer
 from .qa import AnswerAggregator, AnswerConsensus, AnswerFinder, AnswerValidator, ScoredAnswerFinder
-from .ranking import WeightedKeyword, filter_chunks, score_chunks
+from .ranking import (
+    WeightedKeyword,
+    chunk_query_similarities,
+    combine_scored_chunk_channels,
+    filter_chunks,
+    score_chunks,
+)
 from .text import SentenceSplitter
 from .topics import (
     TopicArtifact,
     TopicDocument,
     TopicFallbackReason,
     compute_qa_ratios,
+    document_topic_representation,
     resolve_topic_keyword_profile,
     resolve_topic_match_fallback,
     route_document,
     route_document_to_nearest_leaf,
     score_topic_aware_chunks,
+    topic_term_match_scores,
 )
 
 
@@ -76,7 +84,14 @@ class AnswerPipeline:
         all_answers = [answer for question in question_objects for answer in question.answers]
         final = AnswerAggregator(
             self.encoder, self.config.answer_cluster_threshold
-        ).aggregate(all_answers)
+        ).aggregate(
+            all_answers,
+            question=questions[0] if len(questions) == 1 else None,
+            merge_near_duplicates=self.config.merge_near_duplicate_answers,
+            query_quantile=self.config.answer_query_quantile,
+            min_keep=self.config.answer_query_min_keep,
+            language=self.config.profile.language.value,
+        )
         return PipelineResult(final, tuple(question_objects), tuple(used_chunks))
 
     def validate(
@@ -200,6 +215,9 @@ class HierarchicalTopicRerankingPipeline:
     static_weight_ratio: float = 0.5
     enforce_encoder_compatibility: bool = True
     expected_encoder_revision: str | None = None
+    soft_rerank: bool = False
+    title_prior_weight: float = 0.5
+    topic_prior_weight: float = 0.5
 
     def run(
         self,
@@ -258,16 +276,36 @@ class HierarchicalTopicRerankingPipeline:
                         "only_weight": 1.0,
                         "equal_weight_score_diff": 0.5,
                     }.get(profile.score_chunk_strategy, 0.5),
+                    keep_unmatched=self.soft_rerank,
+                    unmatched_floor=0.0,
                 )
+                if scored and self.soft_rerank:
+                    scored = self._apply_soft_priors(
+                        scored,
+                        topic_document,
+                        question_texts[0] if question_texts else "",
+                        route,
+                    )
                 if scored:
+                    cluster_name = (
+                        "weighted_score"
+                        if self.soft_rerank
+                        else profile.choose_cluster_strategy
+                    )
+                    answer_name = (
+                        "combined_score"
+                        if self.soft_rerank
+                        else profile.choose_answer_strategy
+                    )
                     result = self._answer_scored(
                         scored,
                         question_texts,
                         selection_strategy=selection_strategy,
                         similarity_threshold=similarity_threshold,
-                        cluster_strategy=profile.choose_cluster_strategy,
-                        answer_strategy=profile.choose_answer_strategy,
+                        cluster_strategy=cluster_name,
+                        answer_strategy=answer_name,
                     )
+                    matched = sum(1 for item in scored if item.matched_keywords)
                     return PipelineResult(
                         result.final_answer,
                         result.questions,
@@ -275,6 +313,7 @@ class HierarchicalTopicRerankingPipeline:
                         metadata={
                             "topic_enabled": True,
                             "topic_keyword_mode": True,
+                            "soft_rerank": self.soft_rerank,
                             "topic_route": _route_metadata(route),
                             "topic_keyword_node_id": keyword_node_id,
                             "topic_keywords": [
@@ -285,6 +324,9 @@ class HierarchicalTopicRerankingPipeline:
                             ],
                             "keyword_fallback": False,
                             "compute": compute_qa_ratios(result.used_chunks, chunks),
+                            "keyword_match_chunk_ratio": (
+                                matched / len(scored) if scored else 0.0
+                            ),
                             "chunk_scores": [
                                 {
                                     "start_sentence": item.chunk.start_sentence,
@@ -466,6 +508,33 @@ class HierarchicalTopicRerankingPipeline:
                 "keyword_fallback": True,
                 "fallback_stage": TopicFallbackReason.BASELINE.value,
             },
+        )
+
+    def _apply_soft_priors(
+        self,
+        scored: list,
+        document: TopicDocument,
+        question: str,
+        route: Any,
+    ) -> list:
+        texts = [item.chunk.text for item in scored]
+        prior = " ".join(
+            part.strip()
+            for part in (document.title, document.abstract, question)
+            if part and str(part).strip()
+        )
+        if not prior.strip():
+            prior = document_topic_representation(document)
+        title_scores = chunk_query_similarities(self.encoder, prior, texts)
+        topic_scores = topic_term_match_scores(
+            [item.chunk for item in scored],
+            route,
+            self.topic_artifact,
+        )
+        return combine_scored_chunk_channels(
+            scored,
+            ([item.score for item in scored], title_scores, topic_scores),
+            (1.0, self.title_prior_weight, self.topic_prior_weight),
         )
 
     def _answer_scored(

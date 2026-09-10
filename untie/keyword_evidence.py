@@ -420,6 +420,28 @@ def _contrast_against_references(
     )
 
 
+def evidence_fingerprint_payload(
+    payload: Mapping[str, Any] | None,
+    *,
+    contrast_against_gold: bool = True,
+) -> dict[str, Any]:
+    """Keep default gold-contrast fingerprints unchanged for static tuning."""
+    merged = dict(payload or {})
+    if not contrast_against_gold:
+        merged["contrast_against_gold"] = False
+    return merged
+
+
+def _candidates_without_gold_contrast(
+    candidates: Sequence[dict[str, float | str]],
+) -> list[dict[str, float | str]]:
+    """Keep attention/IDF terms; do not rank or drop them by gold similarity."""
+    return [
+        {**item, "score_diff": 0.0}
+        for item in candidates
+    ]
+
+
 def _unique_valid_answers(
     answers: list[Answer],
     references: Sequence[str],
@@ -455,9 +477,14 @@ def collect_document_evidence(
     keyword_idf_threshold: float = 1.5,
     collect_candidates: bool = True,
     relaxed_contrast: bool = False,
+    contrast_against_gold: bool = True,
     fingerprint_payload: dict[str, Any] | None = None,
 ) -> CachedDocumentEvidence:
-    """Выполняет дорогой train-only сбор evidence для одного документа."""
+    """Выполняет дорогой train-only сбор evidence для одного документа.
+
+    ``contrast_against_gold`` defaults to True so global static tuning keeps
+    the aspect-vs-gold filter. Cluster-refit experiments may disable it.
+    """
     clean_references = tuple(
         str(reference).strip() for reference in references if str(reference).strip()
     )
@@ -487,41 +514,44 @@ def collect_document_evidence(
         merged = _merge_attention_batches(
             raw_batches, filtered_chunks, language=language
         )
-        contrasted = _contrast_against_references(
-            merged,
-            aspect_reference=aspect_reference,
-            references=clean_references,
-            encoder=encoder,
-        )
-        if relaxed_contrast and len(contrasted) < 20:
-            seen = {str(item["word"]).casefold() for item in contrasted}
-            for item in merged:
-                word = str(item["word"])
-                if word.casefold() in seen:
-                    continue
-                positive = float(
-                    cosine_similarity(
-                        np.asarray(encoder.encode([word])),
-                        np.asarray(encoder.encode([aspect_reference])),
-                    )[0, 0]
-                )
-                negative = 0.0
-                if clean_references:
-                    negative = float(
+        if contrast_against_gold:
+            contrasted = _contrast_against_references(
+                merged,
+                aspect_reference=aspect_reference,
+                references=clean_references,
+                encoder=encoder,
+            )
+            if relaxed_contrast and len(contrasted) < 20:
+                seen = {str(item["word"]).casefold() for item in contrasted}
+                for item in merged:
+                    word = str(item["word"])
+                    if word.casefold() in seen:
+                        continue
+                    positive = float(
                         cosine_similarity(
                             np.asarray(encoder.encode([word])),
-                            np.asarray(encoder.encode(list(clean_references))),
-                        ).max()
+                            np.asarray(encoder.encode([aspect_reference])),
+                        )[0, 0]
                     )
-                score_diff = positive - negative
-                if score_diff >= -0.05:
-                    contrasted.append({**item, "score_diff": score_diff})
-                    seen.add(word.casefold())
-            contrasted = sorted(
-                contrasted,
-                key=lambda item: float(item.get("score_diff", 0.0)),
-                reverse=True,
-            )
+                    negative = 0.0
+                    if clean_references:
+                        negative = float(
+                            cosine_similarity(
+                                np.asarray(encoder.encode([word])),
+                                np.asarray(encoder.encode(list(clean_references))),
+                            ).max()
+                        )
+                    score_diff = positive - negative
+                    if score_diff >= -0.05:
+                        contrasted.append({**item, "score_diff": score_diff})
+                        seen.add(word.casefold())
+                contrasted = sorted(
+                    contrasted,
+                    key=lambda item: float(item.get("score_diff", 0.0)),
+                    reverse=True,
+                )
+        else:
+            contrasted = _candidates_without_gold_contrast(merged)
 
     chunk_index_by_text: dict[str, list[int]] = {}
     for index, chunk in enumerate(chunks):
@@ -574,7 +604,10 @@ def collect_document_evidence(
         question=question,
         references=clean_references,
         collect_candidates=collect_candidates,
-        fingerprint_payload=fingerprint_payload,
+        fingerprint_payload=evidence_fingerprint_payload(
+            fingerprint_payload,
+            contrast_against_gold=contrast_against_gold,
+        ),
     )
     return CachedDocumentEvidence(
         doc_id=doc_id,

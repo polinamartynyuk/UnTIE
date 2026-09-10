@@ -125,12 +125,35 @@ documents assigned to that train-derived cluster:
 - test documents are not accepted by the profile-training API;
 - clustering and centroids are not rebuilt during keyword tuning.
 
-At inference, the document is assigned to its nearest leaf centroid. Its
-profile is passed to the existing `score_chunks` hard filter, so only chunks
-matching that cluster-specific dictionary reach extractive QA. If the leaf has
-no profile, lookup ascends toward the root. If the selected dictionary has no
-chunk matches, the pipeline falls back to the global static dictionary and
-then baseline.
+At inference, the document is assigned to its nearest leaf centroid. By
+default its profile is passed to the existing `score_chunks` hard filter, so
+only chunks matching that cluster-specific dictionary reach extractive QA.
+`--soft-rerank` on `scripts/11_Evaluate_hierarchical_test.py` disables that
+drop: every chunk is answered, and keywords plus title/question similarity
+plus routed representative terms only rank which answer consensus keeps.
+That evaluation writes to a new directory and refuses to replace
+`evaluation/`, `refit/evaluation/`, `refit_no_gold_contrast/evaluation/`,
+or later isolated experiment directories.
+
+Document-level cross-encoder ranking is a separate experiment in
+`scripts/12_Evaluate_cross_encoder.py`. It does not use cluster SFFS
+dictionaries. Every chunk is answered; `chunk_score` is either MiniLM
+cross-encoder score or a mix with the frozen global static dictionary
+(`keep_unmatched=True`). Mix weights are chosen on **dev** gold char-F1
+and frozen for test. The script writes
+`artifacts/hierarchical_topic_optimized/en/cross_encoder/` and refuses
+to replace previous evaluation directories.
+
+A follow-up experiment in `scripts/13_Evaluate_ce_topic_shortlist.py`
+keeps all-chunk QA and the baseline `AnswerAggregator`. The frozen topic
+route only expands the MiniLM query with leaf `representative_terms`
+(not SFFS keyword profiles). CE then shortlists top-k answers; k is
+chosen on dev. Output:
+`artifacts/hierarchical_topic_optimized/en/ce_topic_query/`.
+
+If the leaf has no profile, lookup ascends toward the root. If the selected
+dictionary has no chunk matches in the default hard-filter path, the pipeline
+falls back to the global static dictionary and then baseline.
 
 The old `representative_terms` remain diagnostics for interpreting clusters.
 They are not used as a hard filter when an artifact contains node keyword
@@ -161,6 +184,36 @@ Routing, fallback reason, per-chunk scores, QA chunk/token counts and ratios
 are returned in `PipelineResult.metadata`. Evaluation-only helpers
 `compute_retrieval_metrics` and `compute_qa_ratios` provide Evidence Recall@K,
 MRR, `QAChunkRatio`, and `QATokenRatio`.
+
+
+## Final train+dev keyword refit
+
+After the keyword-trial and routing grids have already been selected on held-out
+dev, refit leaf dictionaries on the union of train and dev without changing
+clusters or the frozen routing gate:
+
+```bash
+python3 scripts/10_Refit_hierarchical_keywords.py \
+  --dataset datasets/scirex_structured.json \
+  --source-dir artifacts/hierarchical_topic_optimized/en \
+  --static-model experiments/analysis_results/keyword_tuning_task/en/full_v5/scart_tuned_model.json \
+  --output-dir artifacts/hierarchical_topic_optimized/en/refit_no_gold_contrast
+```
+
+The command reads `keyword_best_trial` from `manifest.json` (trial 2 in the
+current SciREx run: `min_keywords=6`, `union`, `stability_threshold=0.15`) and
+keeps routing from `topic_model.tuned.json` (`similarity_threshold=0.75`,
+`min_margin=0.0`). It does not re-run the 4 keyword trials or the 12-gate
+routing search. Candidates are collected from train and dev with attention and
+IDF, but **without** aspect-vs-gold contrast (that filter stays in global
+static tuning). Cluster chunk scoring defaults to `only_weight`. The selected
+trial stays frozen, but the final SFFS floor is lowered to 4 by default
+(`--refit-min-keywords`). Outputs go to
+`refit_no_gold_contrast/` unless `--contrast-against-gold` is set, in which
+case they go to `refit/`. The source tuned model is never overwritten. Use
+`--force` only to replace a previous refit in that directory. Evidence from an
+earlier cache in the same output directory is reused only when fingerprints
+match; disabling gold contrast uses a new evidence fingerprint.
 
 ## Dev tuning
 

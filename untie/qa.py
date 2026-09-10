@@ -103,18 +103,42 @@ class AnswerAggregator:
     encoder: SentenceEncoder
     cluster_threshold: float = 0.5
 
-    def aggregate(self, answers: list[Answer]) -> FinalAnswer | None:
-        if not answers:
+    def aggregate(
+        self,
+        answers: list[Answer],
+        *,
+        question: str | None = None,
+        merge_near_duplicates: bool = False,
+        query_quantile: float | None = None,
+        min_keep: int = 3,
+        language: str = "en",
+    ) -> FinalAnswer | None:
+        """Pick one span from per-chunk extractive answers.
+
+        Default arguments keep the historical behaviour: centroid of all
+        answer embeddings, no duplicate merging, no question filter.
+        Optional steps are question-conditioned (any aspect), not a
+        field-specific lexicon.
+        """
+        from .answer_selection import AggregationSettings, select_typical_span
+
+        selected, supporting, _stats = select_typical_span(
+            answers,
+            self.encoder,
+            question=question,
+            settings=AggregationSettings(
+                merge_near_duplicates=merge_near_duplicates,
+                query_quantile=query_quantile,
+                min_keep=min_keep,
+                language=language,
+            ),
+        )
+        if selected is None:
             return None
-        embeddings = np.asarray(self.encoder.encode([answer.text for answer in answers]))
-        similarities = cosine_similarity(embeddings)
-        best_index = int(np.argmax(similarities.mean(axis=1)))
-        best = answers[best_index]
-        supporting = tuple(answer for answer in answers if answer.text == best.text)
         return FinalAnswer(
-            text=best.text,
+            text=selected.text,
             confidence=float(np.mean([answer.confidence for answer in answers])),
-            supporting_answers=supporting,
+            supporting_answers=supporting or (selected,),
         )
 
 

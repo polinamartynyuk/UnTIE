@@ -1,0 +1,2132 @@
+[
+  {
+    "document_id": "0012de6bec1f25599e4f02517637e531a71909b9",
+    "split": "test",
+    "aspects": [
+      {
+        "DOC_ID": "0012de6bec1f25599e4f02517637e531a71909b9",
+        "ASPECT": "method",
+        "QUESTION": "What method or model is used or proposed in the paper?",
+        "RAW GOLD": [
+          "V-Net___Dice-based_loss"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "V-Net Dice-based loss"
+        ],
+        "EXTRACTABLE GOLD": [],
+        "UNEXTRACTABLE GOLD": [
+          "V-Net Dice-based loss"
+        ],
+        "GOLD MENTIONS": [],
+        "GOLD-SUPPORTING CHUNKS": [],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "V-Net___Dice-based_loss"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0012de6bec1f25599e4f02517637e531a71909b9",
+        "ASPECT": "task",
+        "QUESTION": "What task is addressed in the paper?",
+        "RAW GOLD": [
+          "Volumetric_Medical_Image_Segmentation"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Volumetric Medical Image Segmentation"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Volumetric Medical Image Segmentation"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "0012de6bec1f25599e4f02517637e531a71909b9:task:volumetric medical image segmentation:0",
+            "matched_text": "Volumetric Medical Image Segmentation",
+            "char_start": 59,
+            "char_end": 96,
+            "chunk_ids": [
+              0
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Volumetric_Medical_Image_Segmentation"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0012de6bec1f25599e4f02517637e531a71909b9",
+        "ASPECT": "metric",
+        "QUESTION": "What evaluation metric is used in the paper?",
+        "RAW GOLD": [
+          "Dice_Score"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Dice Score"
+        ],
+        "EXTRACTABLE GOLD": [],
+        "UNEXTRACTABLE GOLD": [
+          "Dice Score"
+        ],
+        "GOLD MENTIONS": [],
+        "GOLD-SUPPORTING CHUNKS": [],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Dice_Score"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0012de6bec1f25599e4f02517637e531a71909b9",
+        "ASPECT": "material",
+        "QUESTION": "What dataset or material is used in the paper?",
+        "RAW GOLD": [
+          "PROMISE_2012"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "PROMISE 2012"
+        ],
+        "EXTRACTABLE GOLD": [
+          "PROMISE 2012"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "0012de6bec1f25599e4f02517637e531a71909b9:material:promise 2012:0",
+            "matched_text": "PROMISE 2012",
+            "char_start": 14994,
+            "char_end": 15006,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "0012de6bec1f25599e4f02517637e531a71909b9:material:promise 2012:1",
+            "matched_text": "PROMISE 2012",
+            "char_start": 17126,
+            "char_end": 17138,
+            "chunk_ids": [
+              9
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          8,
+          9
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "PROMISE_2012"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "000f90380d768a85e2316225854fc377c079b5c4",
+    "split": "train",
+    "aspects": [
+      {
+        "DOC_ID": "000f90380d768a85e2316225854fc377c079b5c4",
+        "ASPECT": "method",
+        "QUESTION": "What method or model is used or proposed in the paper?",
+        "RAW GOLD": [
+          "FRRN"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "FRRN"
+        ],
+        "EXTRACTABLE GOLD": [
+          "FRRN"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:0",
+            "matched_text": "FRRN",
+            "char_start": 6864,
+            "char_end": 6868,
+            "chunk_ids": [
+              3,
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:1",
+            "matched_text": "FRRN",
+            "char_start": 16528,
+            "char_end": 16532,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:2",
+            "matched_text": "FRRN",
+            "char_start": 16863,
+            "char_end": 16867,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:3",
+            "matched_text": "FRRN",
+            "char_start": 20707,
+            "char_end": 20711,
+            "chunk_ids": [
+              12
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:4",
+            "matched_text": "FRRN",
+            "char_start": 20717,
+            "char_end": 20721,
+            "chunk_ids": [
+              12
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:5",
+            "matched_text": "FRRN",
+            "char_start": 24521,
+            "char_end": 24525,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:6",
+            "matched_text": "FRRN",
+            "char_start": 24595,
+            "char_end": 24599,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:7",
+            "matched_text": "FRRN",
+            "char_start": 25008,
+            "char_end": 25012,
+            "chunk_ids": [
+              14,
+              15
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:8",
+            "matched_text": "FRRN",
+            "char_start": 26431,
+            "char_end": 26435,
+            "chunk_ids": [
+              15
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:9",
+            "matched_text": "FRRN",
+            "char_start": 26706,
+            "char_end": 26710,
+            "chunk_ids": [
+              15,
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:10",
+            "matched_text": "FRRN",
+            "char_start": 27622,
+            "char_end": 27626,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:11",
+            "matched_text": "FRRN",
+            "char_start": 27784,
+            "char_end": 27788,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:12",
+            "matched_text": "FRRN",
+            "char_start": 29345,
+            "char_end": 29349,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:13",
+            "matched_text": "FRRN",
+            "char_start": 29589,
+            "char_end": 29593,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:method:frrn:14",
+            "matched_text": "FRRN",
+            "char_start": 34101,
+            "char_end": 34105,
+            "chunk_ids": [
+              20
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          3,
+          4,
+          9,
+          12,
+          14,
+          15,
+          16,
+          17,
+          20
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "FRRN"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "000f90380d768a85e2316225854fc377c079b5c4",
+        "ASPECT": "task",
+        "QUESTION": "What task is addressed in the paper?",
+        "RAW GOLD": [
+          "Semantic_Segmentation",
+          "Real-Time_Semantic_Segmentation"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Semantic Segmentation",
+          "Real-Time Semantic Segmentation"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Semantic Segmentation"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "Real-Time Semantic Segmentation"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:0",
+            "matched_text": "Semantic Segmentation",
+            "char_start": 40,
+            "char_end": 61,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:1",
+            "matched_text": "semantic segmentation",
+            "char_start": 2890,
+            "char_end": 2911,
+            "chunk_ids": [
+              1
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:2",
+            "matched_text": "semantic segmentation",
+            "char_start": 3958,
+            "char_end": 3979,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:3",
+            "matched_text": "semantic segmentation",
+            "char_start": 6323,
+            "char_end": 6344,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:4",
+            "matched_text": "semantic segmentation",
+            "char_start": 6949,
+            "char_end": 6970,
+            "chunk_ids": [
+              3,
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:5",
+            "matched_text": "semantic segmentation",
+            "char_start": 7556,
+            "char_end": 7577,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:6",
+            "matched_text": "Semantic Segmentation",
+            "char_start": 7630,
+            "char_end": 7651,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:7",
+            "matched_text": "semantic segmentation",
+            "char_start": 7705,
+            "char_end": 7726,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:8",
+            "matched_text": "semantic segmentation",
+            "char_start": 8350,
+            "char_end": 8371,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:9",
+            "matched_text": "semantic segmentation",
+            "char_start": 11659,
+            "char_end": 11680,
+            "chunk_ids": [
+              6
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:10",
+            "matched_text": "semantic segmentation",
+            "char_start": 30696,
+            "char_end": 30717,
+            "chunk_ids": [
+              18
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:11",
+            "matched_text": "semantic segmentation",
+            "char_start": 32662,
+            "char_end": 32683,
+            "chunk_ids": [
+              19
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:task:semantic segmentation:12",
+            "matched_text": "semantic segmentation",
+            "char_start": 33030,
+            "char_end": 33051,
+            "chunk_ids": [
+              19
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6,
+          18,
+          19
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Semantic_Segmentation",
+            "Real-Time_Semantic_Segmentation"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "000f90380d768a85e2316225854fc377c079b5c4",
+        "ASPECT": "metric",
+        "QUESTION": "What evaluation metric is used in the paper?",
+        "RAW GOLD": [
+          "Frame__fps_",
+          "Mean_IoU",
+          "mIoU",
+          "Time__ms_"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Frame fps",
+          "Mean IoU",
+          "mIoU",
+          "Time ms"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Mean IoU"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "Frame fps",
+          "mIoU",
+          "Time ms"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:0",
+            "matched_text": "mean IoU",
+            "char_start": 27658,
+            "char_end": 27666,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:1",
+            "matched_text": "Mean IoU",
+            "char_start": 29162,
+            "char_end": 29170,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:2",
+            "matched_text": "mean IoU",
+            "char_start": 29384,
+            "char_end": 29392,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:3",
+            "matched_text": "mean IoU",
+            "char_start": 29676,
+            "char_end": 29684,
+            "chunk_ids": [
+              17,
+              18
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:4",
+            "matched_text": "mean IoU",
+            "char_start": 29790,
+            "char_end": 29798,
+            "chunk_ids": [
+              17,
+              18
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:metric:mean iou:5",
+            "matched_text": "mean IoU",
+            "char_start": 34199,
+            "char_end": 34207,
+            "chunk_ids": [
+              20
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          16,
+          17,
+          18,
+          20
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Frame__fps_",
+            "Mean_IoU",
+            "mIoU",
+            "Time__ms_"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "000f90380d768a85e2316225854fc377c079b5c4",
+        "ASPECT": "material",
+        "QUESTION": "What dataset or material is used in the paper?",
+        "RAW GOLD": [
+          "Cityscapes"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Cityscapes"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Cityscapes"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:0",
+            "matched_text": "Cityscapes",
+            "char_start": 1442,
+            "char_end": 1452,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:1",
+            "matched_text": "Cityscapes",
+            "char_start": 7311,
+            "char_end": 7321,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:2",
+            "matched_text": "Cityscapes",
+            "char_start": 7361,
+            "char_end": 7371,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:3",
+            "matched_text": "Cityscapes",
+            "char_start": 11818,
+            "char_end": 11828,
+            "chunk_ids": [
+              6
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:4",
+            "matched_text": "Cityscapes",
+            "char_start": 22302,
+            "char_end": 22312,
+            "chunk_ids": [
+              13
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:5",
+            "matched_text": "Cityscapes",
+            "char_start": 23941,
+            "char_end": 23951,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:6",
+            "matched_text": "Cityscapes",
+            "char_start": 24572,
+            "char_end": 24582,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:7",
+            "matched_text": "Cityscapes",
+            "char_start": 24822,
+            "char_end": 24832,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:8",
+            "matched_text": "Cityscapes",
+            "char_start": 25175,
+            "char_end": 25185,
+            "chunk_ids": [
+              15
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:9",
+            "matched_text": "cityscapes",
+            "char_start": 26873,
+            "char_end": 26883,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:10",
+            "matched_text": "Cityscapes",
+            "char_start": 27374,
+            "char_end": 27384,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:11",
+            "matched_text": "Cityscapes",
+            "char_start": 27993,
+            "char_end": 28003,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:12",
+            "matched_text": "Cityscapes",
+            "char_start": 28221,
+            "char_end": 28231,
+            "chunk_ids": [
+              16,
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:13",
+            "matched_text": "Cityscapes",
+            "char_start": 28720,
+            "char_end": 28730,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:14",
+            "matched_text": "Cityscapes",
+            "char_start": 29445,
+            "char_end": 29455,
+            "chunk_ids": [
+              17
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:15",
+            "matched_text": "Cityscapes",
+            "char_start": 29822,
+            "char_end": 29832,
+            "chunk_ids": [
+              17,
+              18
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:16",
+            "matched_text": "Cityscapes",
+            "char_start": 30092,
+            "char_end": 30102,
+            "chunk_ids": [
+              18
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:17",
+            "matched_text": "Cityscapes",
+            "char_start": 32890,
+            "char_end": 32900,
+            "chunk_ids": [
+              19
+            ]
+          },
+          {
+            "mention_id": "000f90380d768a85e2316225854fc377c079b5c4:material:cityscapes:18",
+            "matched_text": "Cityscapes",
+            "char_start": 34714,
+            "char_end": 34724,
+            "chunk_ids": [
+              20,
+              21
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          4,
+          6,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Cityscapes"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "023cc7f9f3544436553df9548a7d0575bb309c2e",
+    "split": "train",
+    "aspects": [
+      {
+        "DOC_ID": "023cc7f9f3544436553df9548a7d0575bb309c2e",
+        "ASPECT": "method",
+        "QUESTION": "What method or model is used or proposed in the paper?",
+        "RAW GOLD": [
+          "fastText",
+          "FastText"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "FastText"
+        ],
+        "EXTRACTABLE GOLD": [
+          "FastText"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:0",
+            "matched_text": "fastText",
+            "char_start": 186,
+            "char_end": 194,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:1",
+            "matched_text": "fastText",
+            "char_start": 342,
+            "char_end": 350,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:2",
+            "matched_text": "fastText",
+            "char_start": 1737,
+            "char_end": 1745,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:3",
+            "matched_text": "fastText",
+            "char_start": 4976,
+            "char_end": 4984,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:4",
+            "matched_text": "fastText",
+            "char_start": 6064,
+            "char_end": 6072,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:5",
+            "matched_text": "fastText",
+            "char_start": 6744,
+            "char_end": 6752,
+            "chunk_ids": [
+              3,
+              4
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:6",
+            "matched_text": "fastText",
+            "char_start": 7097,
+            "char_end": 7105,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:7",
+            "matched_text": "fastText",
+            "char_start": 7224,
+            "char_end": 7232,
+            "chunk_ids": [
+              4
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:8",
+            "matched_text": "fastText",
+            "char_start": 8709,
+            "char_end": 8717,
+            "chunk_ids": [
+              5
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:9",
+            "matched_text": "fastText",
+            "char_start": 8744,
+            "char_end": 8752,
+            "chunk_ids": [
+              5
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:method:fasttext:10",
+            "matched_text": "fastText",
+            "char_start": 9680,
+            "char_end": 9688,
+            "chunk_ids": [
+              5
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          2,
+          3,
+          4,
+          5
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "fastText",
+            "FastText"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "023cc7f9f3544436553df9548a7d0575bb309c2e",
+        "ASPECT": "task",
+        "QUESTION": "What task is addressed in the paper?",
+        "RAW GOLD": [
+          "Sentiment_Analysis",
+          "Text_Classification"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Sentiment Analysis",
+          "Text Classification"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Sentiment Analysis",
+          "Text Classification"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:sentiment analysis:0",
+            "matched_text": "sentiment analysis",
+            "char_start": 1796,
+            "char_end": 1814,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:sentiment analysis:1",
+            "matched_text": "sentiment analysis",
+            "char_start": 5076,
+            "char_end": 5094,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:sentiment analysis:2",
+            "matched_text": "Sentiment analysis",
+            "char_start": 5359,
+            "char_end": 5377,
+            "chunk_ids": [
+              2,
+              3
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:sentiment analysis:3",
+            "matched_text": "sentiment analysis",
+            "char_start": 9963,
+            "char_end": 9981,
+            "chunk_ids": [
+              5,
+              6
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:0",
+            "matched_text": "Text Classification",
+            "char_start": 38,
+            "char_end": 57,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:1",
+            "matched_text": "text classification",
+            "char_start": 114,
+            "char_end": 133,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:2",
+            "matched_text": "Text classification",
+            "char_start": 542,
+            "char_end": 561,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:3",
+            "matched_text": "text classification",
+            "char_start": 1035,
+            "char_end": 1054,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:4",
+            "matched_text": "text classification",
+            "char_start": 1358,
+            "char_end": 1377,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:5",
+            "matched_text": "text classification",
+            "char_start": 9501,
+            "char_end": 9520,
+            "chunk_ids": [
+              5
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:task:text classification:6",
+            "matched_text": "text classification",
+            "char_start": 9926,
+            "char_end": 9945,
+            "chunk_ids": [
+              5,
+              6
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          2,
+          3,
+          5,
+          6
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Sentiment_Analysis",
+            "Text_Classification"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "023cc7f9f3544436553df9548a7d0575bb309c2e",
+        "ASPECT": "metric",
+        "QUESTION": "What evaluation metric is used in the paper?",
+        "RAW GOLD": [
+          "Error",
+          "Accuracy"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Error",
+          "Accuracy"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Accuracy"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "Error"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:metric:accuracy:0",
+            "matched_text": "accuracy",
+            "char_start": 254,
+            "char_end": 262,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:metric:accuracy:1",
+            "matched_text": "accuracy",
+            "char_start": 6250,
+            "char_end": 6258,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:metric:accuracy:2",
+            "matched_text": "accuracy",
+            "char_start": 6369,
+            "char_end": 6377,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:metric:accuracy:3",
+            "matched_text": "accuracy",
+            "char_start": 6840,
+            "char_end": 6848,
+            "chunk_ids": [
+              3,
+              4
+            ]
+          },
+          {
+            "mention_id": "023cc7f9f3544436553df9548a7d0575bb309c2e:metric:accuracy:4",
+            "matched_text": "accuracy",
+            "char_start": 8966,
+            "char_end": 8974,
+            "chunk_ids": [
+              5
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          3,
+          4,
+          5
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Error",
+            "Accuracy"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "023cc7f9f3544436553df9548a7d0575bb309c2e",
+        "ASPECT": "material",
+        "QUESTION": "What dataset or material is used in the paper?",
+        "RAW GOLD": [
+          "Yelp_Binary_classification",
+          "Yelp_Fine-grained_classification",
+          "Yahoo__Answers",
+          "AG_News",
+          "DBpedia",
+          "Sogou_News",
+          "Amazon_Review_Full",
+          "Amazon_Review_Polarity"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Yelp Binary classification",
+          "Yelp Fine-grained classification",
+          "Yahoo Answers",
+          "AG News",
+          "DBpedia",
+          "Sogou News",
+          "Amazon Review Full",
+          "Amazon Review Polarity"
+        ],
+        "EXTRACTABLE GOLD": [],
+        "UNEXTRACTABLE GOLD": [
+          "Yelp Binary classification",
+          "Yelp Fine-grained classification",
+          "Yahoo Answers",
+          "AG News",
+          "DBpedia",
+          "Sogou News",
+          "Amazon Review Full",
+          "Amazon Review Polarity"
+        ],
+        "GOLD MENTIONS": [],
+        "GOLD-SUPPORTING CHUNKS": [],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Yelp_Binary_classification",
+            "Yelp_Fine-grained_classification",
+            "Yahoo__Answers",
+            "AG_News",
+            "DBpedia",
+            "Sogou_News",
+            "Amazon_Review_Full",
+            "Amazon_Review_Polarity"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "0095c269e7d0c990249312687fc43521019809c4",
+    "split": "dev",
+    "aspects": [
+      {
+        "DOC_ID": "0095c269e7d0c990249312687fc43521019809c4",
+        "ASPECT": "method",
+        "QUESTION": "What method or model is used or proposed in the paper?",
+        "RAW GOLD": [
+          "50D_stacked_TC-LSTMs"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "50D stacked TC-LSTMs"
+        ],
+        "EXTRACTABLE GOLD": [],
+        "UNEXTRACTABLE GOLD": [
+          "50D stacked TC-LSTMs"
+        ],
+        "GOLD MENTIONS": [],
+        "GOLD-SUPPORTING CHUNKS": [],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "50D_stacked_TC-LSTMs"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0095c269e7d0c990249312687fc43521019809c4",
+        "ASPECT": "task",
+        "QUESTION": "What task is addressed in the paper?",
+        "RAW GOLD": [
+          "Natural_Language_Inference"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Natural Language Inference"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Natural Language Inference"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:task:natural language inference:0",
+            "matched_text": "Natural Language Inference",
+            "char_start": 16308,
+            "char_end": 16334,
+            "chunk_ids": [
+              10
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          10
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Natural_Language_Inference"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0095c269e7d0c990249312687fc43521019809c4",
+        "ASPECT": "metric",
+        "QUESTION": "What evaluation metric is used in the paper?",
+        "RAW GOLD": [
+          "Parameters",
+          "__Train_Accuracy",
+          "__Test_Accuracy"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Parameters",
+          "Train Accuracy",
+          "Test Accuracy"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Parameters"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "Train Accuracy",
+          "Test Accuracy"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:0",
+            "matched_text": "parameters",
+            "char_start": 5240,
+            "char_end": 5250,
+            "chunk_ids": [
+              2,
+              3
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:1",
+            "matched_text": "parameters",
+            "char_start": 8450,
+            "char_end": 8460,
+            "chunk_ids": [
+              5
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:2",
+            "matched_text": "parameters",
+            "char_start": 14219,
+            "char_end": 14229,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:3",
+            "matched_text": "parameters",
+            "char_start": 15144,
+            "char_end": 15154,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:4",
+            "matched_text": "parameters",
+            "char_start": 15484,
+            "char_end": 15494,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:5",
+            "matched_text": "parameters",
+            "char_start": 16789,
+            "char_end": 16799,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:6",
+            "matched_text": "parameters",
+            "char_start": 17400,
+            "char_end": 17410,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:metric:parameters:7",
+            "matched_text": "parameters",
+            "char_start": 22537,
+            "char_end": 22547,
+            "chunk_ids": [
+              13,
+              14
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          2,
+          3,
+          5,
+          8,
+          9,
+          10,
+          13,
+          14
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Parameters",
+            "__Train_Accuracy",
+            "__Test_Accuracy"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "0095c269e7d0c990249312687fc43521019809c4",
+        "ASPECT": "material",
+        "QUESTION": "What dataset or material is used in the paper?",
+        "RAW GOLD": [
+          "SNLI"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "SNLI"
+        ],
+        "EXTRACTABLE GOLD": [
+          "SNLI"
+        ],
+        "UNEXTRACTABLE GOLD": [],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:material:snli:0",
+            "matched_text": "SNLI",
+            "char_start": 16343,
+            "char_end": 16347,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:material:snli:1",
+            "matched_text": "SNLI",
+            "char_start": 16457,
+            "char_end": 16461,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:material:snli:2",
+            "matched_text": "SNLI",
+            "char_start": 16565,
+            "char_end": 16569,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "0095c269e7d0c990249312687fc43521019809c4:material:snli:3",
+            "matched_text": "SNLI",
+            "char_start": 16736,
+            "char_end": 16740,
+            "chunk_ids": [
+              10
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          10
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "SNLI"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      }
+    ]
+  },
+  {
+    "document_id": "007ab5528b3bd310a80d553cccad4b78dc496b02",
+    "split": "test",
+    "aspects": [
+      {
+        "DOC_ID": "007ab5528b3bd310a80d553cccad4b78dc496b02",
+        "ASPECT": "method",
+        "QUESTION": "What method or model is used or proposed in the paper?",
+        "RAW GOLD": [
+          "BiDAF__single_model_",
+          "BiDAF",
+          "BiDAF__ensemble_",
+          "BiDaF_Baseline"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "BiDAF single model",
+          "BiDAF",
+          "BiDAF ensemble",
+          "BiDaF Baseline"
+        ],
+        "EXTRACTABLE GOLD": [
+          "BiDAF"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "BiDAF single model",
+          "BiDAF ensemble",
+          "BiDaF Baseline"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:0",
+            "matched_text": "BiDAF",
+            "char_start": 562,
+            "char_end": 567,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:1",
+            "matched_text": "BiDAF",
+            "char_start": 2262,
+            "char_end": 2267,
+            "chunk_ids": [
+              1
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:2",
+            "matched_text": "BiDAF",
+            "char_start": 2435,
+            "char_end": 2440,
+            "chunk_ids": [
+              1
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:3",
+            "matched_text": "BiDAF",
+            "char_start": 4140,
+            "char_end": 4145,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:4",
+            "matched_text": "BiDAF",
+            "char_start": 4354,
+            "char_end": 4359,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:5",
+            "matched_text": "BiDAF",
+            "char_start": 11198,
+            "char_end": 11203,
+            "chunk_ids": [
+              6
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:6",
+            "matched_text": "BiDAF",
+            "char_start": 13951,
+            "char_end": 13956,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:7",
+            "matched_text": "BiDAF",
+            "char_start": 14356,
+            "char_end": 14361,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:8",
+            "matched_text": "BiDAF",
+            "char_start": 14840,
+            "char_end": 14845,
+            "chunk_ids": [
+              8,
+              9
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:9",
+            "matched_text": "BiDAF",
+            "char_start": 18820,
+            "char_end": 18825,
+            "chunk_ids": [
+              11
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:10",
+            "matched_text": "BiDAF",
+            "char_start": 20471,
+            "char_end": 20476,
+            "chunk_ids": [
+              12
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:11",
+            "matched_text": "BiDAF",
+            "char_start": 25743,
+            "char_end": 25748,
+            "chunk_ids": [
+              15
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:12",
+            "matched_text": "BiDAF",
+            "char_start": 26214,
+            "char_end": 26219,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:13",
+            "matched_text": "BiDAF",
+            "char_start": 26443,
+            "char_end": 26448,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:method:bidaf:14",
+            "matched_text": "BiDAF",
+            "char_start": 27633,
+            "char_end": 27638,
+            "chunk_ids": [
+              16
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          1,
+          2,
+          6,
+          8,
+          9,
+          11,
+          12,
+          15,
+          16
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "BiDAF__single_model_",
+            "BiDAF",
+            "BiDAF__ensemble_",
+            "BiDaF_Baseline"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "007ab5528b3bd310a80d553cccad4b78dc496b02",
+        "ASPECT": "task",
+        "QUESTION": "What task is addressed in the paper?",
+        "RAW GOLD": [
+          "Question_Answering",
+          "Open-Domain_Question_Answering"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "Question Answering",
+          "Open-Domain Question Answering"
+        ],
+        "EXTRACTABLE GOLD": [
+          "Question Answering"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "Open-Domain Question Answering"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:0",
+            "matched_text": "Question Answering",
+            "char_start": 912,
+            "char_end": 930,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:1",
+            "matched_text": "question answering",
+            "char_start": 1045,
+            "char_end": 1063,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:2",
+            "matched_text": "Question Answering",
+            "char_start": 4225,
+            "char_end": 4243,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:3",
+            "matched_text": "Question Answering",
+            "char_start": 13074,
+            "char_end": 13092,
+            "chunk_ids": [
+              7,
+              8
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:4",
+            "matched_text": "question answering",
+            "char_start": 14900,
+            "char_end": 14918,
+            "chunk_ids": [
+              8,
+              9
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:5",
+            "matched_text": "question answering",
+            "char_start": 14932,
+            "char_end": 14950,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:6",
+            "matched_text": "question answering",
+            "char_start": 15041,
+            "char_end": 15059,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:7",
+            "matched_text": "Question Answering",
+            "char_start": 16574,
+            "char_end": 16592,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:8",
+            "matched_text": "question answering",
+            "char_start": 16659,
+            "char_end": 16677,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:task:question answering:9",
+            "matched_text": "Question Answering",
+            "char_start": 26787,
+            "char_end": 26805,
+            "chunk_ids": [
+              16
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          2,
+          7,
+          8,
+          9,
+          10,
+          16
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "Question_Answering",
+            "Open-Domain_Question_Answering"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "007ab5528b3bd310a80d553cccad4b78dc496b02",
+        "ASPECT": "metric",
+        "QUESTION": "What evaluation metric is used in the paper?",
+        "RAW GOLD": [
+          "METEOR",
+          "EM__Quasar-T_",
+          "F1__Quasar-T_",
+          "F1",
+          "EM",
+          "BLEU-4",
+          "Rouge-L",
+          "BLEU-1",
+          "CNN",
+          "Daily_Mail"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "METEOR",
+          "EM Quasar-T",
+          "F1 Quasar-T",
+          "F1",
+          "EM",
+          "BLEU-4",
+          "Rouge-L",
+          "BLEU-1",
+          "CNN",
+          "Daily Mail"
+        ],
+        "EXTRACTABLE GOLD": [
+          "F1",
+          "EM",
+          "CNN",
+          "Daily Mail"
+        ],
+        "UNEXTRACTABLE GOLD": [
+          "METEOR",
+          "EM Quasar-T",
+          "F1 Quasar-T",
+          "BLEU-4",
+          "Rouge-L",
+          "BLEU-1"
+        ],
+        "GOLD MENTIONS": [
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:f1:0",
+            "matched_text": "F1",
+            "char_start": 17238,
+            "char_end": 17240,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:f1:1",
+            "matched_text": "F1",
+            "char_start": 18873,
+            "char_end": 18875,
+            "chunk_ids": [
+              11
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:em:0",
+            "matched_text": "EM",
+            "char_start": 17213,
+            "char_end": 17215,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:em:1",
+            "matched_text": "EM",
+            "char_start": 18849,
+            "char_end": 18851,
+            "chunk_ids": [
+              11
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:em:2",
+            "matched_text": "EM",
+            "char_start": 23150,
+            "char_end": 23152,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:0",
+            "matched_text": "CNN",
+            "char_start": 951,
+            "char_end": 954,
+            "chunk_ids": [
+              0
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:1",
+            "matched_text": "CNN",
+            "char_start": 4411,
+            "char_end": 4414,
+            "chunk_ids": [
+              2
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:2",
+            "matched_text": "CNN",
+            "char_start": 5797,
+            "char_end": 5800,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:3",
+            "matched_text": "CNN",
+            "char_start": 5885,
+            "char_end": 5888,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:4",
+            "matched_text": "CNN",
+            "char_start": 5938,
+            "char_end": 5941,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:5",
+            "matched_text": "CNN",
+            "char_start": 5962,
+            "char_end": 5965,
+            "chunk_ids": [
+              3
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:6",
+            "matched_text": "CNN",
+            "char_start": 12265,
+            "char_end": 12268,
+            "chunk_ids": [
+              7
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:7",
+            "matched_text": "CNN",
+            "char_start": 12881,
+            "char_end": 12884,
+            "chunk_ids": [
+              7
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:8",
+            "matched_text": "CNN",
+            "char_start": 13213,
+            "char_end": 13216,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:9",
+            "matched_text": "CNN",
+            "char_start": 13663,
+            "char_end": 13666,
+            "chunk_ids": [
+              8
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:10",
+            "matched_text": "CNN",
+            "char_start": 15138,
+            "char_end": 15141,
+            "chunk_ids": [
+              9
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:11",
+            "matched_text": "CNN",
+            "char_start": 17823,
+            "char_end": 17826,
+            "chunk_ids": [
+              10
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:12",
+            "matched_text": "CNN",
+            "char_start": 18115,
+            "char_end": 18118,
+            "chunk_ids": [
+              11
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:13",
+            "matched_text": "CNN",
+            "char_start": 23637,
+            "char_end": 23640,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:14",
+            "matched_text": "CNN",
+            "char_start": 24027,
+            "char_end": 24030,
+            "chunk_ids": [
+              14
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:15",
+            "matched_text": "CNN",
+            "char_start": 24699,
+            "char_end": 24702,
+            "chunk_ids": [
+              15
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:16",
+            "matched_text": "CNN",
+            "char_start": 26124,
+            "char_end": 26127,
+            "chunk_ids": [
+              15,
+              16
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:cnn:17",
+            "matched_text": "CNN",
+            "char_start": 26826,
+            "char_end": 26829,
+            "chunk_ids": [
+              16
+            ]
+          },
+          {
+            "mention_id": "007ab5528b3bd310a80d553cccad4b78dc496b02:metric:daily mail:0",
+            "matched_text": "Daily Mail",
+            "char_start": 23645,
+            "char_end": 23655,
+            "chunk_ids": [
+              14
+            ]
+          }
+        ],
+        "GOLD-SUPPORTING CHUNKS": [
+          0,
+          2,
+          3,
+          7,
+          8,
+          9,
+          10,
+          11,
+          14,
+          15,
+          16
+        ],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "METEOR",
+            "EM__Quasar-T_",
+            "F1__Quasar-T_",
+            "F1",
+            "EM",
+            "BLEU-4",
+            "Rouge-L",
+            "BLEU-1",
+            "CNN",
+            "Daily_Mail"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      },
+      {
+        "DOC_ID": "007ab5528b3bd310a80d553cccad4b78dc496b02",
+        "ASPECT": "material",
+        "QUESTION": "What dataset or material is used in the paper?",
+        "RAW GOLD": [
+          "NarrativeQA",
+          "MS_MARCO",
+          "SQuAD1_1",
+          "CNN___Daily_Mail",
+          "Quasar"
+        ],
+        "NORMALIZED / CANONICAL GOLD": [
+          "NarrativeQA",
+          "MS MARCO",
+          "SQuAD1 1",
+          "CNN Daily Mail",
+          "Quasar"
+        ],
+        "EXTRACTABLE GOLD": [],
+        "UNEXTRACTABLE GOLD": [
+          "NarrativeQA",
+          "MS MARCO",
+          "SQuAD1 1",
+          "CNN Daily Mail",
+          "Quasar"
+        ],
+        "GOLD MENTIONS": [],
+        "GOLD-SUPPORTING CHUNKS": [],
+        "SOURCE CHECK": {
+          "source_field_values": [
+            "NarrativeQA",
+            "MS_MARCO",
+            "SQuAD1_1",
+            "CNN___Daily_Mail",
+            "Quasar"
+          ],
+          "transforms": "NFKC, _+→space, dash unification, whitespace collapse, casefold for match only",
+          "new_factual_values_added": false,
+          "external_values_used_for_gold": false,
+          "external_enrichment_count": 0
+        }
+      }
+    ]
+  }
+]

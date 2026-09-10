@@ -9,7 +9,7 @@ import numpy as np
 from untie.attention import reconstruct_attention_words
 from untie.chunking import ChunkBuilder
 from untie.config import ModelProfile, PipelineConfig
-from untie.domain import Answer, Question, Sentence, TextChunk
+from untie.domain import Answer, Question, ScoredChunk, Sentence, TextChunk
 from untie.keywords import KeywordExtractor
 from untie.pipelines import (
     AnswerPipeline,
@@ -142,6 +142,85 @@ def test_chunk_score_is_invariant_to_absent_keyword() -> None:
     with_absent = score_chunks([chunk], [present, absent])
 
     assert original[0].score == with_absent[0].score
+
+
+def test_score_chunks_keep_unmatched_preserves_all_chunks_and_ranks_matches() -> None:
+    matched = TextChunk(
+        (Sentence("frost pressure in soil", 0, ("frost", "pressure", "in", "soil")),),
+        "frost pressure in soil",
+        4,
+    )
+    other = TextChunk(
+        (Sentence("unrelated appendix text", 1, ("unrelated", "appendix", "text")),),
+        "unrelated appendix text",
+        3,
+    )
+    keyword = WeightedKeyword("pressure", "pressure", "pressure", 1.0, 1.0)
+    dropped = score_chunks([matched, other], [keyword])
+    kept = score_chunks(
+        [matched, other],
+        [keyword],
+        keep_unmatched=True,
+        unmatched_floor=0.0,
+    )
+    assert [item.chunk.text for item in dropped] == [matched.text]
+    assert {item.chunk.text for item in kept} == {matched.text, other.text}
+    ranked = {item.chunk.text: item.score for item in kept}
+    assert ranked[matched.text] > ranked[other.text]
+
+
+def test_minmax_scale_preserves_negative_cross_encoder_logits() -> None:
+    from untie.ranking import minmax_scale, mix_score_channels, normalize_nonnegative_scores
+
+    logits = (-2.0, -0.5, 1.5)
+    scaled = minmax_scale(logits)
+    assert scaled[2] == 1.0
+    assert scaled[0] == 0.0
+    assert 0.0 < scaled[1] < 1.0
+    clipped = normalize_nonnegative_scores(logits)
+    assert clipped == [0.0, 0.0, 1.0]
+    mixed = mix_score_channels((logits, (0.0, 1.0, 0.0)), (1.0, 0.0))
+    assert mixed[2] > mixed[1] > mixed[0]
+
+
+def test_combine_chunk_channels_prefers_title_aligned_chunk() -> None:
+    from untie.ranking import (
+        chunk_query_similarities,
+        combine_scored_chunk_channels,
+        normalize_nonnegative_scores,
+    )
+
+    class Encoder:
+        def encode(self, texts):
+            values = []
+            for text in texts:
+                lowered = str(text).lower()
+                values.append(
+                    [
+                        float("soil" in lowered or "frost" in lowered),
+                        float("appendix" in lowered),
+                    ]
+                )
+            return np.asarray(values, dtype=float)
+
+    low = ScoredChunk(chunk=_chunk("appendix notes"), score=0.0)
+    high = ScoredChunk(chunk=_chunk("frost soil measurement"), score=0.0)
+    title = chunk_query_similarities(
+        Encoder(), "Frozen soil", [low.chunk.text, high.chunk.text]
+    )
+    combined = combine_scored_chunk_channels(
+        [low, high],
+        ([0.0, 0.0], title),
+        (1.0, 1.0),
+    )
+    assert combined[0].chunk.text == high.chunk.text
+    assert normalize_nonnegative_scores([0.0, 0.0]) == [0.0, 0.0]
+
+
+def _chunk(text: str) -> TextChunk:
+    tokens = tuple(text.split())
+    return TextChunk((Sentence(text, 0, tokens),), text, len(tokens))
+
 
 
 def test_keyword_extractor_returns_ranked_candidates() -> None:

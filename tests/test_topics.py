@@ -248,8 +248,14 @@ def test_artifact_round_trip_and_schema_validation(tmp_path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(TopicArtifactError, match="unit vectors"):
         load_topic_artifact(path)
+    compatible = artifact.to_dict()
+    compatible["routing"]["unknown_option"] = True
+    compatible["clustering"]["params"]["cluster_candidates"] = [4, 6]
+    path.write_text(json.dumps(compatible), encoding="utf-8")
+    ignored = load_topic_artifact(path)
+    assert ignored.routing == artifact.routing
     malformed = artifact.to_dict()
-    malformed["routing"]["unknown_option"] = True
+    malformed["routing"]["top_k"] = 0
     path.write_text(json.dumps(malformed), encoding="utf-8")
     with pytest.raises(TopicArtifactError, match="invalid topic artifact"):
         load_topic_artifact(path)
@@ -560,6 +566,68 @@ def test_pipeline_uses_nearest_cluster_keyword_profile() -> None:
     assert result.metadata["compute"]["qa_chunk_ratio"] < 1.0
     assert result.final_answer is not None
     assert result.final_answer.text == "frost pressure"
+
+
+def test_pipeline_soft_rerank_keeps_all_chunks_and_still_selects_keyword_chunk() -> None:
+    artifact = _artifact()
+    route = route_document_to_nearest_leaf(
+        TopicDocument("new", title="Frozen soil"),
+        TopicEncoder(),
+        artifact,
+    )
+    leaf_id = route.topics[0].node_id
+    profile = TopicKeywordProfile(
+        keywords=(
+            WeightedKeyword("pressure", "pressure", "pressure", 0.8, 0.7),
+        ),
+        score_chunk_strategy="only_score_diff",
+        choose_cluster_strategy="weighted_score",
+        choose_answer_strategy="highest_similarity",
+        train_document_count=2,
+        dev_document_count=1,
+    )
+    artifact = replace(
+        artifact,
+        nodes=tuple(
+            replace(node, keyword_profile=profile)
+            if node.node_id == leaf_id
+            else node
+            for node in artifact.nodes
+        ),
+    )
+    config = PipelineConfig(
+        profile=ModelProfile.english(),
+        chunk_max_tokens=6,
+        overlap_tokens=0,
+    )
+    text = (
+        "Generic introduction contains many unrelated background words. "
+        "frost pressure is measured in soil."
+    )
+    hard = HierarchicalTopicRerankingPipeline(
+        DocumentProcessor(FakeTokenizer(), config),
+        FakeAnswerer(),
+        TopicEncoder(),
+        config,
+        artifact,
+        [],
+    ).run(text, "What is measured?", document=TopicDocument("new", title="Frozen soil"))
+    soft = HierarchicalTopicRerankingPipeline(
+        DocumentProcessor(FakeTokenizer(), config),
+        FakeAnswerer(),
+        TopicEncoder(),
+        config,
+        artifact,
+        [],
+        soft_rerank=True,
+    ).run(text, "What is measured?", document=TopicDocument("new", title="Frozen soil"))
+    assert hard.metadata["compute"]["qa_chunk_ratio"] < 1.0
+    assert soft.metadata["soft_rerank"] is True
+    assert soft.metadata["compute"]["qa_chunk_ratio"] == 1.0
+    assert len(soft.used_chunks) > len(hard.used_chunks)
+    assert soft.final_answer is not None
+    assert soft.final_answer.text == "frost pressure"
+    assert soft.metadata["selection_strategy"] == "weighted_score+combined_score"
 
 
 def test_pipeline_ood_falls_back_to_static_then_baseline() -> None:

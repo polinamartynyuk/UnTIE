@@ -1,0 +1,68 @@
+{
+  "path": "datasets/scirex_test_structured.json",
+  "format_name": "jsonl",
+  "n_records": 66,
+  "fields_present": [
+    "doc_id",
+    "materials",
+    "methods",
+    "metrics",
+    "original_text",
+    "score",
+    "tasks"
+  ],
+  "field_frequency": {
+    "doc_id": 66,
+    "materials": 66,
+    "methods": 66,
+    "metrics": 66,
+    "original_text": 66,
+    "score": 66,
+    "tasks": 66
+  },
+  "first_record_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "first_record_preview": {
+    "doc_id": "02567fd428a675ca91a0c6786f47f3e35881bcbd",
+    "methods": [
+      "DLDL_VGG-Face"
+    ],
+    "tasks": [
+      "Age_Estimation"
+    ],
+    "metrics": [
+      "MAE"
+    ],
+    "materials": [
+      "ChaLearn_2015",
+      "MORPH_Album2"
+    ],
+    "score": [
+      "3.51",
+      "2.42±0.01"
+    ],
+    "original_text": "document: Deep Label Distribution Learning With Label Ambiguity Convolutional Neural Networks (ConvNets) have achieved excellent recognition performance in various visual recognition tasks. A large labeled training set is one of the most im…"
+  },
+  "expected_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "missing_expected_fields": [],
+  "unexpected_fields": [],
+  "schema_matches_expected": true,
+  "notes": [
+    "file is JSONL, not a JSON array; parser uses line-wise JSON"
+  ]
+}

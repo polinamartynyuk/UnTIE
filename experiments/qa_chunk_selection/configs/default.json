@@ -1,0 +1,11 @@
+{
+  "name": "qa_chunk_selection_v1",
+  "mode": "controlled_candidate_set",
+  "candidate_mode": "all",
+  "source_refs": ["S01", "S02", "S03", "S04", "S05", "S06", "S07"],
+  "labels": "artifacts/phase1_multiquestion/official_{train,dev}_q5",
+  "a": "generic cross-encoder/ms-marco-MiniLM-L6-v2",
+  "b": "same backbone trained on robust_positive vs hard_negative",
+  "c": "B top-M globally competing raw logits",
+  "d": "ablations D1–D5 on the same frozen candidates"
+}

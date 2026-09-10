@@ -15,6 +15,8 @@ from untie.keyword_evidence import (
     collect_document_evidence,
     rerank_cached_document,
     stable_fingerprint,
+    _candidates_without_gold_contrast,
+    _contrast_against_references,
 )
 from untie.ranking import WeightedKeyword
 from untie.pipelines import StaticKeywordRerankingPipeline
@@ -179,6 +181,74 @@ def test_collect_document_evidence_uses_all_references_and_caches_answers() -> N
     assert len(evidence.chunks) == 2
     assert evidence.baseline_answer
     assert len(evidence.answer_similarity) == 2
+
+
+def _collect_kwargs(**overrides):
+    payload = {
+        "doc_id": "train-1",
+        "text": "semantic task solution | unrelated baseline",
+        "aspect_id": "task",
+        "aspect_reference": "task",
+        "question": "Which task?",
+        "references": ["semantic task"],
+        "processor": FakeProcessor(),
+        "answerer": FakeAnswerer(),
+        "encoder": FakeEncoder(),
+        "attention_extractor": lambda question, context: [
+            {"word": "semantic", "weight": 0.9},
+            {"word": "solution", "weight": 0.4},
+        ],
+        "language": "en",
+        "strict_answer_threshold": 0.0,
+        "min_answer_threshold": 0.0,
+        "keyword_idf_threshold": 0.0,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_gold_contrast_drops_answer_like_terms_by_default() -> None:
+    evidence = collect_document_evidence(**_collect_kwargs())
+    words = {item.word for item in evidence.candidates}
+    assert "semantic" not in words
+    assert evidence.fingerprint == collect_document_evidence(
+        **_collect_kwargs(contrast_against_gold=True)
+    ).fingerprint
+
+
+def test_disabling_gold_contrast_keeps_answer_like_attention_terms() -> None:
+    with_contrast = collect_document_evidence(**_collect_kwargs())
+    without_contrast = collect_document_evidence(
+        **_collect_kwargs(contrast_against_gold=False)
+    )
+    words = {item.word for item in without_contrast.candidates}
+    assert "semantic" in words
+    assert without_contrast.fingerprint != with_contrast.fingerprint
+    assert all(item.score_difference == 0.0 for item in without_contrast.candidates)
+
+
+def test_contrast_helpers_drop_or_keep_gold_like_terms() -> None:
+    candidates = [{"word": "semantic", "weight": 0.9}]
+    dropped = _contrast_against_references(
+        candidates,
+        aspect_reference="task",
+        references=["semantic task"],
+        encoder=FakeEncoder(),
+    )
+    kept = _candidates_without_gold_contrast(candidates)
+    assert dropped == []
+    assert kept == [{"word": "semantic", "weight": 0.9, "score_diff": 0.0}]
+
+
+def test_default_gold_contrast_fingerprint_matches_legacy_payload() -> None:
+    from untie.keyword_evidence import evidence_fingerprint_payload
+
+    assert evidence_fingerprint_payload({"pipeline_version": "v1"}) == {
+        "pipeline_version": "v1"
+    }
+    assert evidence_fingerprint_payload(
+        {"pipeline_version": "v1"}, contrast_against_gold=False
+    ) == {"pipeline_version": "v1", "contrast_against_gold": False}
 
 
 def _cached_document() -> CachedDocumentEvidence:

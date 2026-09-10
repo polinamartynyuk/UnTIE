@@ -527,6 +527,7 @@ def tune_global_keywords(
     objective_config: ObjectiveConfig = ObjectiveConfig(),
     metric_weights: MetricWeights = MetricWeights(),
     split: Mapping[str, Sequence[str]] | None = None,
+    candidate_doc_ids: Sequence[str] | None = None,
     checkpoint_dir: str | Path | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> TuningOutcome:
@@ -552,19 +553,31 @@ def tune_global_keywords(
         False if config.tuning_exact_match else config.include_bertscore
     )
 
+    pool_source_ids = (
+        tuple(candidate_doc_ids)
+        if candidate_doc_ids is not None
+        else train_ids
+    )
+    missing_pool = sorted(set(pool_source_ids).difference(by_id))
+    if missing_pool:
+        raise ValueError(
+            "candidate_doc_ids must refer to cached documents: "
+            f"{missing_pool[:5]}"
+        )
+
     evidence = candidate_evidence_from_documents(
-        by_id[doc_id] for doc_id in train_ids
+        by_id[doc_id] for doc_id in pool_source_ids
     )
     pool = aggregate_candidate_pool(
         evidence,
-        train_ids,
+        pool_source_ids,
         min_document_support=config.min_document_support,
     )
     if config.enrich_train_references:
         pool = enrich_pool_from_train_references(
             pool,
             by_id,
-            train_ids,
+            pool_source_ids,
             min_document_support=config.min_enriched_support,
         )
     pool = pool[: config.max_candidates]
@@ -580,7 +593,7 @@ def tune_global_keywords(
         )
 
     form_votes: dict[str, list[tuple[str, str]]] = {}
-    for doc_id in train_ids:
+    for doc_id in pool_source_ids:
         for candidate in by_id[doc_id].candidates:
             form_votes.setdefault(candidate.word, []).append(
                 (candidate.lemma, candidate.stem)

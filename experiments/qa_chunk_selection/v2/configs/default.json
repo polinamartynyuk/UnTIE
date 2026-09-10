@@ -1,0 +1,24 @@
+{
+  "name": "qa_chunk_selection_v2",
+  "prompt": "hypothesis/qa_chunk_selection_experiments_v2.md",
+  "e0_artifacts": "artifacts/qa_chunk_selection",
+  "v2_artifacts": "artifacts/qa_chunk_selection_v2",
+  "default_stages": [
+    "prepare-v2",
+    "split-v2",
+    "e0-regression",
+    "reader-oracle",
+    "ambiguous-audit",
+    "b2-train",
+    "b2-eval",
+    "ambiguous-audit-b2",
+    "reader-aware",
+    "c-sweep",
+    "c-adaptive",
+    "d2-ablate",
+    "compare-v2",
+    "report-v2"
+  ],
+  "not_default": ["final-eval", "d3", "d4", "d5"],
+  "internal_test": "locked until freeze-final + --allow-internal-test"
+}

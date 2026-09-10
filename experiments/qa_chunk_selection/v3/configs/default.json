@@ -1,0 +1,28 @@
+{
+  "name": "qa_chunk_selection_v3",
+  "prompt": "hypothesis/qa_chunk_selection_experiments_v3_plan_attention.md",
+  "e0_artifacts": "artifacts/qa_chunk_selection",
+  "v2_artifacts": "artifacts/qa_chunk_selection_v2",
+  "v3_artifacts": "artifacts/qa_chunk_selection_v3",
+  "default_stages": [
+    "prepare",
+    "split",
+    "overlay-sample",
+    "b0",
+    "b1",
+    "b2",
+    "b3",
+    "structure",
+    "positive-quality",
+    "at0",
+    "at1",
+    "at2",
+    "at3",
+    "at4",
+    "span-ranker",
+    "oof-compare",
+    "report"
+  ],
+  "gated_not_default": ["b4", "at4-d", "reader-success", "at5", "d4", "d5", "d3", "freeze-final", "final-eval"],
+  "internal_test": "locked until freeze-final + --allow-internal-test + checklist human_signoff"
+}

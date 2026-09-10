@@ -1,0 +1,72 @@
+{
+  "path": "datasets/scirex_structured.json",
+  "format_name": "jsonl",
+  "n_records": 306,
+  "fields_present": [
+    "doc_id",
+    "materials",
+    "methods",
+    "metrics",
+    "original_text",
+    "score",
+    "tasks"
+  ],
+  "field_frequency": {
+    "doc_id": 306,
+    "materials": 306,
+    "methods": 306,
+    "metrics": 306,
+    "original_text": 306,
+    "score": 306,
+    "tasks": 306
+  },
+  "first_record_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "first_record_preview": {
+    "doc_id": "000f90380d768a85e2316225854fc377c079b5c4",
+    "methods": [
+      "FRRN"
+    ],
+    "tasks": [
+      "Semantic_Segmentation",
+      "Real-Time_Semantic_Segmentation"
+    ],
+    "metrics": [
+      "Frame__fps_",
+      "Mean_IoU",
+      "mIoU",
+      "Time__ms_"
+    ],
+    "materials": [
+      "Cityscapes"
+    ],
+    "score": [
+      "2.1",
+      "71.8%",
+      "469"
+    ],
+    "original_text": "Full - Resolution Residual Networks for Semantic Segmentation in Street Scenes section: Abstract Semantic image segmentation is an essential component of modern autonomous driving systems, as an accurate understanding of the surrounding sce…"
+  },
+  "expected_fields": [
+    "doc_id",
+    "methods",
+    "tasks",
+    "metrics",
+    "materials",
+    "score",
+    "original_text"
+  ],
+  "missing_expected_fields": [],
+  "unexpected_fields": [],
+  "schema_matches_expected": true,
+  "notes": [
+    "file is JSONL, not a JSON array; parser uses line-wise JSON"
+  ]
+}
