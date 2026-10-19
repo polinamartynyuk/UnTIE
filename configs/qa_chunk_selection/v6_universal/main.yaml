@@ -1,0 +1,12 @@
+experiment: V6/UAR-G
+historical_upstream: artifacts/qa_chunk_selection_v5/run_20260916_135455
+datasets: [scirex, scier_384, scier_128, russerrc, scimdix]
+seeds: [42, 43, 44]
+outer_folds: 5
+inner_meta_folds: 4
+modes: [local, pooled, loco]
+C_grid: [0.1, 1.0, 10.0]
+tau_switch_grid: [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
+primary_gate_budget: 2.0
+historical_inputs_read_only: true
+

@@ -1,0 +1,19 @@
+experiment: V7/RAPR
+historical_v5: artifacts/qa_chunk_selection_v5/run_20260916_135455
+historical_v6: artifacts/qa_chunk_selection_v6_universal/run_20260922_132020
+cells: [scirex, scier_384, scier_128, russerrc, scimdix]
+seeds: [42, 43, 44]
+outer_folds: 5
+inner_folds: 4
+modes: [local, pooled, loco]
+primary_mode: local
+primary_system: S3
+max_extra_qa: 2
+max_qa_per_question: 3
+alpha_grid: [0.1, 1.0, 10.0]
+harm_C_grid: [0.1, 1.0, 10.0]
+tau_admit_grid: [0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+tau_utility_grid: [0.00, 0.25, 0.50, 1.00, 2.00]
+tau_harm_grid: [0.20, 0.30, 0.40, 0.50]
+mean_qa_budget: 2.0
+historical_inputs_read_only: true

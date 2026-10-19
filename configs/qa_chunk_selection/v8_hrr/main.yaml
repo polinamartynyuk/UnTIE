@@ -1,0 +1,6 @@
+historical_v4_4: artifacts/qa_chunk_selection_v4_4
+historical_v4_4_external: artifacts/qa_chunk_selection_v4_4_external_20260913_213335
+historical_v4_5: artifacts/qa_chunk_selection_v4_5_ru/run_20260915_155234
+historical_v5: artifacts/qa_chunk_selection_v5/run_20260916_135455
+historical_v6: artifacts/qa_chunk_selection_v6_universal/run_20260922_132020
+historical_v7: artifacts/qa_chunk_selection_v7_rapr/run_20260922_181837

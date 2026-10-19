@@ -1,0 +1,6 @@
+dataset,training_positive,training_hard_negative,training_easy_negative,training_evidence_failed,training_false_negative_candidate,training_question_sensitive,training_other
+SciREX,1657,963,4352,2466,1948,676,0
+SciER-384,1017,102,52,1134,219,0,0
+SciER-128,3710,195,2837,4048,833,0,0
+RuSERRC,672,623,26,218,372,144,0
+SciMDIX,256,339,47,165,219,0,0

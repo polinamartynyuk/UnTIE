@@ -1,0 +1,6 @@
+dataset,positive_confirmation_pct_all,near_negative_quarantine_pct_all,qa_positive_without_official_span,evidence_failed_without_official_span,trainable_negative_with_official_span,gold_spans_total,gold_spans_exact,gold_span_exact_pct,gold_span_missing_chunk
+SciREX,31.54988575780655,66.91858467880454,0,0,0,14658,14658,100.0,0
+SciER-384,45.22009782125389,68.22429906542057,2,0,0,23210,23210,100.0,0
+SciER-128,47.649627536604164,81.03112840466926,55,0,0,33338,33338,100.0,0
+RuSERRC,30.896551724137932,37.38693467336683,0,0,0,4366,4366,100.0,0
+SciMDIX,13.410162388685176,39.24731182795699,4,0,0,2757,2757,100.0,0

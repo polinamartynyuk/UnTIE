@@ -1,0 +1,18 @@
+experiment: final_official_split_h2_family_benchmark
+version: 1.0.0
+cells: [scirex, scier_384, scier_128, russerrc, scimdix]
+seeds: [42, 43, 44]
+inner_folds: 4
+split_seed: 42
+bootstrap_iterations: 10000
+bootstrap_seed: 42
+device: auto
+models:
+  bge: BAAI/bge-reranker-v2-m3
+  modernbert_en: answerdotai/ModernBERT-base
+  qwen: Qwen/Qwen2.5-3B-Instruct
+test_firewall:
+  require_explicit_unlock: true
+  generate_all_real_predictions_before_evaluation: true
+  immutable_predictions: true
+  smoke_may_read_test: false
